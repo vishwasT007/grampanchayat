@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head><title>Check localStorage</title></head>
+<body>
+<h1>localStorage Contents</h1>
+<pre id="output"></pre>
+<script>
+const education = localStorage.getItem('EDUCATION_PAGE_CONTENT');
+const about = localStorage.getItem('ABOUT_PAGE_CONTENT');
+document.getElementById('output').textContent = 
+  'EDUCATION_PAGE_CONTENT:\n' + 
+  (education ? JSON.stringify(JSON.parse(education), null, 2) : 'NOT FOUND') +
+  '\n\nABOUT_PAGE_CONTENT:\n' +
+  (about ? JSON.stringify(JSON.parse(about), null, 2) : 'NOT FOUND');
+</script>
+</body>
+</html>
