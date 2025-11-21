@@ -1,47 +1,46 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { mockSiteSettings } from '../data/mockData';
+import { getSettings, initializeSettings } from '../services/settingsService';
 
 const SiteSettingsContext = createContext();
 
 export const SiteSettingsProvider = ({ children }) => {
   const [siteSettings, setSiteSettings] = useState(mockSiteSettings);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load settings from localStorage
-    const loadSettings = () => {
-      const savedSettings = localStorage.getItem('SITE_SETTINGS');
-      if (savedSettings) {
-        try {
-          const settings = JSON.parse(savedSettings);
+    // Load settings from Firebase
+    const loadSettings = async () => {
+      try {
+        setLoading(true);
+        const settings = await getSettings();
+        
+        if (settings) {
           setSiteSettings(settings);
-          console.log('Site settings loaded from localStorage:', settings);
-        } catch (error) {
-          console.error('Error loading site settings:', error);
-          setSiteSettings(mockSiteSettings);
+          console.log('Site settings loaded from Firebase:', settings);
+        } else {
+          // First time - initialize with mock settings
+          const initialized = await initializeSettings(mockSiteSettings);
+          setSiteSettings(initialized);
+          console.log('Site settings initialized in Firebase');
         }
-      } else {
-        // First time - save mock settings
-        localStorage.setItem('SITE_SETTINGS', JSON.stringify(mockSiteSettings));
+      } catch (error) {
+        console.error('Error loading site settings:', error);
+        // Fallback to mock settings
         setSiteSettings(mockSiteSettings);
+      } finally {
+        setLoading(false);
       }
     };
 
     loadSettings();
-
-    // Listen for storage changes (when settings are updated in admin)
-    const handleStorageChange = (e) => {
-      if (e.key === 'SITE_SETTINGS') {
-        console.log('Site settings updated!');
-        loadSettings();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   return (
-    <SiteSettingsContext.Provider value={siteSettings}>
+    <SiteSettingsContext.Provider value={{ settings: siteSettings, loading, refresh: async () => {
+      const settings = await getSettings();
+      if (settings) setSiteSettings(settings);
+    }}}>
       {children}
     </SiteSettingsContext.Provider>
   );

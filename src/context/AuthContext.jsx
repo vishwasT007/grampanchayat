@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { signIn, signOut, getCurrentUser, onAuthChange } from '../services/authService';
 
 const AuthContext = createContext();
 
@@ -15,51 +16,61 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session
-    const storedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-    
-    if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
-    }
-    
-    setLoading(false);
+    // Subscribe to Firebase auth state changes
+    const unsubscribe = onAuthChange((firebaseUser) => {
+      if (firebaseUser) {
+        // User is signed in
+        setUser({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          name: firebaseUser.displayName || firebaseUser.email,
+          role: 'ADMIN', // All Firebase users are admins for now
+        });
+      } else {
+        // User is signed out
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, []);
 
   const login = async (credentials) => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await api.post('/auth/login', credentials);
+      const { email, password } = credentials;
       
-      // Mock login for development
-      if (credentials.username === 'admin' && credentials.password === 'admin123') {
-        const mockUser = {
-          id: 1,
-          username: 'admin',
-          name: 'Admin User',
-          role: 'ADMIN',
-        };
-        
-        const mockToken = 'mock-jwt-token-' + Date.now();
-        
-        localStorage.setItem('user', JSON.stringify(mockUser));
-        localStorage.setItem('token', mockToken);
-        setUser(mockUser);
-        
-        return { success: true };
-      } else {
-        throw new Error('Invalid credentials');
-      }
+      // Sign in with Firebase Authentication
+      const firebaseUser = await signIn(email, password);
+      
+      // User state will be updated by onAuthChange listener
+      return { success: true };
     } catch (error) {
       console.error('Login error:', error);
-      return { success: false, error: error.message };
+      let errorMessage = 'Login failed. Please try again.';
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email.';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later.';
+      }
+      
+      return { success: false, error: errorMessage };
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    setUser(null);
+  const logout = async () => {
+    try {
+      await signOut();
+      // User state will be updated by onAuthChange listener
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const value = {

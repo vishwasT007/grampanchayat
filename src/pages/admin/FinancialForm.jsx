@@ -13,6 +13,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { getRecordById, createRecord, updateRecord } from '../../services/financialService';
 
 const FinancialForm = () => {
   const { language } = useLanguage();
@@ -20,6 +21,7 @@ const FinancialForm = () => {
   const { id } = useParams();
   const isEditMode = Boolean(id);
 
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     type: 'INCOME',
     category: 'TAX',
@@ -180,28 +182,38 @@ const FinancialForm = () => {
   ];
 
   useEffect(() => {
-    if (isEditMode) {
-      // Load transaction from localStorage
-      const savedTransactions = localStorage.getItem('TRANSACTIONS');
-      if (savedTransactions) {
+    const loadTransaction = async () => {
+      if (isEditMode) {
         try {
-          const transactions = JSON.parse(savedTransactions);
-          const transaction = transactions.find(t => t.id === parseInt(id));
+          setLoading(true);
+          const transaction = await getRecordById(id);
           if (transaction) {
-            console.log('Loading transaction for edit:', transaction);
-            setFormData(transaction);
+            // Convert ISO date to YYYY-MM-DD format for input
+            const transactionDate = transaction.transactionDate 
+              ? new Date(transaction.transactionDate).toISOString().split('T')[0]
+              : new Date().toISOString().split('T')[0];
+            
+            setFormData({
+              ...transaction,
+              transactionDate
+            });
             if (transaction.attachment) {
               setAttachmentPreview(transaction.attachment);
             }
           } else {
-            console.error('Transaction not found with id:', id);
+            alert('Transaction not found');
+            navigate('/admin/financials');
           }
         } catch (error) {
           console.error('Error loading transaction:', error);
+          alert('Failed to load transaction');
+        } finally {
+          setLoading(false);
         }
       }
-    }
-  }, [id, isEditMode]);
+    };
+    loadTransaction();
+  }, [id, isEditMode, navigate]);
 
   const getCurrentCategories = () => {
     return formData.type === 'INCOME' ? incomeCategories : expenseCategories;
@@ -346,52 +358,42 @@ const FinancialForm = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (validateForm()) {
-      // Load existing transactions
-      const savedTransactions = localStorage.getItem('TRANSACTIONS');
-      let transactions = [];
-      
-      if (savedTransactions) {
-        try {
-          transactions = JSON.parse(savedTransactions);
-        } catch (error) {
-          console.error('Error parsing transactions:', error);
+      try {
+        setLoading(true);
+        
+        if (isEditMode) {
+          // Update existing transaction
+          await updateRecord(id, formData);
+          alert(
+            language === 'en' 
+              ? 'Transaction updated successfully!' 
+              : 'व्यवहार यशस्वीरित्या अपडेट झाला!'
+          );
+        } else {
+          // Add new transaction
+          await createRecord(formData);
+          alert(
+            language === 'en' 
+              ? 'Transaction added successfully!' 
+              : 'व्यवहार यशस्वीरित्या जोडला!'
+          );
         }
+        
+        navigate('/admin/financials');
+      } catch (error) {
+        console.error('Error saving transaction:', error);
+        alert(
+          language === 'en'
+            ? `Failed to ${isEditMode ? 'update' : 'add'} transaction: ${error.message}`
+            : `व्यवहार ${isEditMode ? 'अपडेट' : 'जोडण्यात'} अयशस्वी: ${error.message}`
+        );
+      } finally {
+        setLoading(false);
       }
-
-      if (isEditMode) {
-        // Update existing transaction
-        const index = transactions.findIndex(t => t.id === parseInt(id));
-        if (index !== -1) {
-          transactions[index] = {
-            ...formData,
-            id: parseInt(id),
-            updatedAt: new Date().toISOString()
-          };
-        }
-      } else {
-        // Add new transaction
-        const newTransaction = {
-          ...formData,
-          id: transactions.length > 0 ? Math.max(...transactions.map(t => t.id)) + 1 : 1,
-          createdAt: new Date().toISOString()
-        };
-        transactions.push(newTransaction);
-      }
-
-      // Save to localStorage
-      localStorage.setItem('TRANSACTIONS', JSON.stringify(transactions));
-      console.log('Transaction saved to localStorage:', formData);
-      
-      alert(
-        isEditMode
-          ? (language === 'en' ? 'Transaction updated successfully!' : 'व्यवहार यशस्वीरित्या अपडेट झाला!')
-          : (language === 'en' ? 'Transaction added successfully!' : 'व्यवहार यशस्वीरित्या जोडला!')
-      );
-      navigate('/admin/financials');
     }
   };
 
@@ -820,18 +822,22 @@ const FinancialForm = () => {
             type="button"
             onClick={() => navigate('/admin/financials')}
             className="px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+            disabled={loading}
           >
             <X size={20} />
             {language === 'en' ? 'Cancel' : 'रद्द करा'}
           </button>
           <button
             type="submit"
-            className="px-6 py-2 bg-gradient-to-r from-[#138808] to-[#1aa910] text-white rounded-lg hover:shadow-lg transition-all flex items-center gap-2"
+            className="px-6 py-2 bg-gradient-to-r from-[#138808] to-[#1aa910] text-white rounded-lg hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={loading}
           >
             <Save size={20} />
-            {isEditMode 
-              ? (language === 'en' ? 'Update Transaction' : 'व्यवहार अपडेट करा')
-              : (language === 'en' ? 'Save Transaction' : 'व्यवहार जतन करा')}
+            {loading 
+              ? (language === 'en' ? 'Saving...' : 'जतन करत आहे...')
+              : isEditMode 
+                ? (language === 'en' ? 'Update Transaction' : 'व्यवहार अपडेट करा')
+                : (language === 'en' ? 'Save Transaction' : 'व्यवहार जतन करा')}
           </button>
         </div>
       </form>

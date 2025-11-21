@@ -41,6 +41,9 @@ import FinancialsManagement from './pages/admin/FinancialsManagement';
 import FinancialForm from './pages/admin/FinancialForm';
 import AboutPageManagement from './pages/admin/AboutPageManagement';
 import EducationPageManagement from './pages/admin/EducationPageManagement';
+import VillageStatistics from './pages/admin/VillageStatistics';
+import VillageStatisticsPublic from './pages/VillageStatistics';
+import FirebaseSetup from './pages/FirebaseSetup';
 
 function App() {
   return (
@@ -62,7 +65,11 @@ function App() {
                 <Route path="financials" element={<Financials />} />
                 <Route path="notices" element={<Notices />} />
                 <Route path="contact" element={<Contact />} />
+                <Route path="village-statistics" element={<VillageStatisticsPublic />} />
               </Route>
+
+              {/* Firebase Setup (Temporary - remove after setup complete) */}
+              <Route path="/firebase-setup" element={<FirebaseSetup />} />
 
               {/* Admin Routes */}
               <Route path="/admin/login" element={<AdminLogin />} />
@@ -102,6 +109,7 @@ function App() {
                 <Route path="financials/edit/:id" element={<FinancialForm />} />
                 <Route path="content/about" element={<AboutPageManagement />} />
                 <Route path="content/education" element={<EducationPageManagement />} />
+                <Route path="village-statistics" element={<VillageStatistics />} />
               </Route>
             </Routes>
           </LanguageProvider>

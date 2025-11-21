@@ -7,7 +7,7 @@ const AdminLogin = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [credentials, setCredentials] = useState({
-    username: '',
+    email: '',
     password: '',
   });
   const [error, setError] = useState('');
@@ -55,16 +55,16 @@ const AdminLogin = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Username
+                Email Address
               </label>
               <input
-                type="text"
-                name="username"
+                type="email"
+                name="email"
                 required
-                value={credentials.username}
+                value={credentials.email}
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="Enter your username"
+                placeholder="Enter your email"
               />
             </div>
 
@@ -94,9 +94,10 @@ const AdminLogin = () => {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-500">
-              Demo credentials: <br />
-              Username: <span className="font-semibold">admin</span> | Password:{' '}
-              <span className="font-semibold">admin123</span>
+              Create admin account at:{' '}
+              <a href="/firebase-setup" className="text-primary-600 hover:text-primary-700 font-semibold">
+                Firebase Setup
+              </a>
             </p>
           </div>
         </div>

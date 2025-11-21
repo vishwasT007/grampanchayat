@@ -5,7 +5,7 @@ import { useSiteSettings } from '../../context/SiteSettingsContext';
 
 const Footer = () => {
   const { t, getContent } = useLanguage();
-  const siteSettings = useSiteSettings();
+  const { settings: siteSettings } = useSiteSettings();
 
   const quickLinks = [
     { path: '/', label: t('nav.home') },

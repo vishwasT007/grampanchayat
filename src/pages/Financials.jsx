@@ -10,45 +10,30 @@ import {
   Download,
   Filter
 } from 'lucide-react';
+import { getAllRecords } from '../services/financialService';
 
 const Financials = () => {
   const { t, language } = useLanguage();
   const [transactions, setTransactions] = useState([]);
   const [filterType, setFilterType] = useState('ALL');
   const [filterYear, setFilterYear] = useState('ALL');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadTransactions = () => {
-      const savedTransactions = localStorage.getItem('TRANSACTIONS');
-      console.log('Loading Transactions:', savedTransactions ? 'Found' : 'Not Found');
-      
-      if (savedTransactions) {
-        try {
-          const parsed = JSON.parse(savedTransactions);
-          console.log('Parsed Transactions:', parsed);
-          setTransactions(parsed);
-        } catch (error) {
-          console.error('Error parsing transactions:', error);
-          setTransactions([]);
-        }
-      } else {
-        console.log('No transactions in localStorage');
+    const loadTransactions = async () => {
+      try {
+        setLoading(true);
+        const records = await getAllRecords();
+        setTransactions(records);
+      } catch (error) {
+        console.error('Error loading transactions:', error);
         setTransactions([]);
+      } finally {
+        setLoading(false);
       }
     };
 
     loadTransactions();
-
-    // Listen for storage changes
-    const handleStorageChange = (e) => {
-      if (e.key === 'TRANSACTIONS') {
-        console.log('Transactions updated!');
-        loadTransactions();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   // Calculate statistics
@@ -90,6 +75,29 @@ const Financials = () => {
       year: 'numeric' 
     });
   };
+
+  if (loading) {
+    return (
+      <div>
+        {/* Hero Section */}
+        <section className="bg-gradient-to-r from-[#ff6b00] to-[#ff8533] text-white py-16">
+          <div className="container-custom">
+            <h1 className="text-4xl font-bold mb-4">
+              {language === 'en' ? 'Financial Transparency' : 'आर्थिक पारदर्शकता'}
+            </h1>
+            <p className="text-xl text-white/90">
+              {language === 'en' 
+                ? 'Complete transparency of Gram Panchayat income and expenditure' 
+                : 'ग्रामपंचायत उत्पन्न आणि खर्चाची संपूर्ण पारदर्शकता'}
+            </p>
+          </div>
+        </section>
+        <div className="flex justify-center items-center py-16">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#ff6b00]"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

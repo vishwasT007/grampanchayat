@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react';
 import { Save, Building2, Phone, Mail, MapPin, Clock, Facebook, Twitter, Instagram } from 'lucide-react';
 import BilingualInput from '../../components/common/BilingualInput';
 import { mockSiteSettings } from '../../data/mockData';
+import { getSettings, updateSettings } from '../../services/settingsService';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 
 function SiteSettings() {
+  const { refresh } = useSiteSettings();
   const [formData, setFormData] = useState({
     panchayatName: { en: '', mr: '' },
     tagline: { en: '', mr: '' },
@@ -18,25 +21,42 @@ function SiteSettings() {
 
   const [errors, setErrors] = useState({});
   const [saved, setSaved] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // Load settings from localStorage on mount
+  // Load settings from Firebase on mount
   useEffect(() => {
-    const savedSettings = localStorage.getItem('SITE_SETTINGS');
-    if (savedSettings) {
+    const loadSettingsData = async () => {
       try {
-        const settings = JSON.parse(savedSettings);
-        setFormData({
-          panchayatName: settings.panchayatName || { en: '', mr: '' },
-          tagline: settings.tagline || { en: '', mr: '' },
-          phone: settings.contact?.phone || '',
-          email: settings.contact?.email || '',
-          address: settings.contact?.address || { en: '', mr: '' },
-          officeTimings: settings.officeTimings || { en: '', mr: '' },
-          facebook: settings.socialMedia?.facebook || '',
-          twitter: settings.socialMedia?.twitter || '',
-          instagram: settings.socialMedia?.instagram || ''
-        });
+        setLoading(true);
+        const settings = await getSettings();
+        
+        if (settings) {
+          setFormData({
+            panchayatName: settings.panchayatName || { en: '', mr: '' },
+            tagline: settings.tagline || { en: '', mr: '' },
+            phone: settings.contact?.phone || '',
+            email: settings.contact?.email || '',
+            address: settings.contact?.address || { en: '', mr: '' },
+            officeTimings: settings.officeTimings || { en: '', mr: '' },
+            facebook: settings.socialMedia?.facebook || '',
+            twitter: settings.socialMedia?.twitter || '',
+            instagram: settings.socialMedia?.instagram || ''
+          });
+        } else {
+          // Initialize with mock data
+          setFormData({
+            panchayatName: mockSiteSettings.panchayatName,
+            tagline: mockSiteSettings.tagline,
+            phone: mockSiteSettings.contact.phone,
+            email: mockSiteSettings.contact.email,
+            address: mockSiteSettings.contact.address,
+            officeTimings: mockSiteSettings.officeTimings,
+            facebook: mockSiteSettings.socialMedia.facebook,
+            twitter: mockSiteSettings.socialMedia.twitter,
+            instagram: mockSiteSettings.socialMedia.instagram
+          });
+        }
       } catch (error) {
         console.error('Error loading settings:', error);
         // Use mock data as fallback
@@ -51,21 +71,12 @@ function SiteSettings() {
           twitter: mockSiteSettings.socialMedia.twitter,
           instagram: mockSiteSettings.socialMedia.instagram
         });
+      } finally {
+        setLoading(false);
       }
-    } else {
-      // Initialize with mock data
-      setFormData({
-        panchayatName: mockSiteSettings.panchayatName,
-        tagline: mockSiteSettings.tagline,
-        phone: mockSiteSettings.contact.phone,
-        email: mockSiteSettings.contact.email,
-        address: mockSiteSettings.contact.address,
-        officeTimings: mockSiteSettings.officeTimings,
-        facebook: mockSiteSettings.socialMedia.facebook,
-        twitter: mockSiteSettings.socialMedia.twitter,
-        instagram: mockSiteSettings.socialMedia.instagram
-      });
-    }
+    };
+
+    loadSettingsData();
   }, []);
 
   const handleChange = (field, value) => {
@@ -120,7 +131,7 @@ function SiteSettings() {
       return;
     }
 
-    setLoading(true);
+    setSaving(true);
 
     try {
       const settingsData = {
@@ -139,8 +150,12 @@ function SiteSettings() {
         }
       };
 
-      // Save to localStorage
-      localStorage.setItem('SITE_SETTINGS', JSON.stringify(settingsData));
+      // Save to Firebase
+      await updateSettings(settingsData);
+      
+      // Refresh context to update the site immediately
+      await refresh();
+      
       console.log('Settings saved successfully!', settingsData);
 
       setSaved(true);
@@ -153,9 +168,18 @@ function SiteSettings() {
       console.error('Error saving settings:', error);
       alert('Failed to save settings. Please try again.');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
+
+  // Show loading spinner while fetching data
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -350,11 +374,11 @@ function SiteSettings() {
         <div className="flex justify-end gap-4">
           <button
             type="submit"
-            disabled={loading}
+            disabled={saving}
             className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
           >
             <Save size={20} />
-            {loading ? 'Saving...' : 'Save Settings'}
+            {saving ? 'Saving...' : 'Save Settings'}
           </button>
         </div>
       </form>

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import BilingualInput from '../../components/common/BilingualInput';
+import { getEducationContent, updateEducationContent } from '../../services/pagesService';
 
 const EducationPageManagement = () => {
   const { language } = useLanguage();
@@ -144,13 +145,25 @@ const EducationPageManagement = () => {
 
   const [errors, setErrors] = useState({});
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // Load saved data from localStorage
+  // Load saved data from Firebase
   useEffect(() => {
-    const savedData = localStorage.getItem('EDUCATION_PAGE_CONTENT');
-    if (savedData) {
-      setFormData(JSON.parse(savedData));
-    }
+    const loadContent = async () => {
+      try {
+        setLoading(true);
+        const content = await getEducationContent();
+        if (content) {
+          setFormData(content);
+        }
+      } catch (error) {
+        console.error('Error loading education content:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadContent();
   }, []);
 
   const handleBilingualChange = (field, lang, value) => {
@@ -301,26 +314,43 @@ const EducationPageManagement = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (validateForm()) {
-      localStorage.setItem('EDUCATION_PAGE_CONTENT', JSON.stringify(formData));
-      
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-      
-      alert(
-        language === 'en' 
-          ? 'Education page content updated successfully!' 
-          : 'Education पृष्ठ सामग्री यशस्वीरित्या अद्यतनित झाली!'
-      );
+      try {
+        setSaving(true);
+        await updateEducationContent(formData);
+        
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+        
+        alert(
+          language === 'en' 
+            ? 'Education page content updated successfully!' 
+            : 'Education पृष्ठ सामग्री यशस्वीरित्या अद्यतनित झाली!'
+        );
+      } catch (error) {
+        console.error('Error saving education content:', error);
+        alert(
+          language === 'en'
+            ? 'Failed to save education content'
+            : 'सामग्री जतन करण्यात अयशस्वी'
+        );
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
-  const previewPage = () => {
-    localStorage.setItem('EDUCATION_PAGE_CONTENT', JSON.stringify(formData));
-    window.open('/education', '_blank');
+  const previewPage = async () => {
+    try {
+      await updateEducationContent(formData);
+      window.open('/education', '_blank');
+    } catch (error) {
+      console.error('Error saving before preview:', error);
+      alert('Failed to save content before preview');
+    }
   };
 
   return (
@@ -728,15 +758,19 @@ const EducationPageManagement = () => {
             type="button"
             onClick={() => navigate('/admin/dashboard')}
             className="px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            disabled={saving}
           >
             {language === 'en' ? 'Cancel' : 'रद्द करा'}
           </button>
           <button
             type="submit"
-            className="px-6 py-2 bg-gradient-to-r from-[#138808] to-[#1aa910] text-white rounded-lg hover:shadow-lg transition-all flex items-center gap-2"
+            className="px-6 py-2 bg-gradient-to-r from-[#138808] to-[#1aa910] text-white rounded-lg hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={saving}
           >
             <Save size={20} />
-            {language === 'en' ? 'Save Changes' : 'बदल जतन करा'}
+            {saving 
+              ? (language === 'en' ? 'Saving...' : 'जतन करत आहे...')
+              : (language === 'en' ? 'Save Changes' : 'बदल जतन करा')}
           </button>
         </div>
       </form>

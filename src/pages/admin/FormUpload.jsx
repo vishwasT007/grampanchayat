@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Upload, X, FileText } from 'lucide-react';
-import { mockForms } from '../../data/mockData';
-import BilingualInput from '../../components/common/BilingualInput';
+import { getFormById, createForm, updateForm } from '../../services/formsService';
 
 function FormUpload() {
   const navigate = useNavigate();
@@ -10,45 +9,55 @@ function FormUpload() {
   const isEdit = Boolean(id);
 
   const [formData, setFormData] = useState({
-    title: { en: '', mr: '' },
-    description: { en: '', mr: '' },
+    titleEn: '',
+    titleMr: '',
+    descriptionEn: '',
+    descriptionMr: '',
     category: 'APPLICATION',
     language: 'BOTH',
     file: null,
-    fileName: ''
+    fileName: '',
+    existingFileUrl: ''
   });
 
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
-    if (isEdit) {
-      // Load forms from localStorage
-      const savedForms = localStorage.getItem('FORMS');
-      if (savedForms) {
+    const loadForm = async () => {
+      if (isEdit) {
         try {
-          const forms = JSON.parse(savedForms);
-          const form = forms.find(f => f.id === parseInt(id));
+          setLoading(true);
+          const form = await getFormById(id);
           if (form) {
-            console.log('Loading form for edit:', form);
             setFormData({
-              title: form.title,
-              description: form.description,
+              titleEn: form.titleEn || '',
+              titleMr: form.titleMr || '',
+              descriptionEn: form.descriptionEn || '',
+              descriptionMr: form.descriptionMr || '',
               category: form.category,
               language: form.language,
               file: null,
-              fileName: form.fileName || form.fileUrl || ''
+              fileName: form.fileName || '',
+              existingFileUrl: form.fileUrl || ''
             });
           } else {
-            console.error('Form not found with id:', id);
+            alert('Form not found');
+            navigate('/admin/forms');
           }
         } catch (error) {
           console.error('Error loading form:', error);
+          alert('Failed to load form');
+        } finally {
+          setLoading(false);
         }
       }
-    }
-  }, [id, isEdit]);
+    };
+    loadForm();
+  }, [id, isEdit, navigate]);
 
-  // Handler for bilingual fields
+  // Handler for simple text fields
   const handleChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
@@ -122,11 +131,11 @@ function FormUpload() {
   const validate = () => {
     const newErrors = {};
 
-    if (!formData.title.en.trim()) {
-      newErrors.title = 'Title is required';
+    if (!formData.titleEn.trim()) {
+      newErrors.titleEn = 'English title is required';
     }
-    if (!formData.description.en.trim()) {
-      newErrors.description = 'Description is required';
+    if (!formData.descriptionEn.trim()) {
+      newErrors.descriptionEn = 'English description is required';
     }
     if (!formData.file && !isEdit) {
       newErrors.file = 'PDF file is required';
@@ -139,67 +148,54 @@ function FormUpload() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!validate()) {
       return;
     }
 
-    // Load existing forms from localStorage
-    const savedForms = localStorage.getItem('FORMS');
-    let forms = [];
-    
-    if (savedForms) {
-      try {
-        forms = JSON.parse(savedForms);
-      } catch (error) {
-        console.error('Error parsing forms:', error);
-      }
-    }
+    try {
+      setLoading(true);
+      setUploadProgress(0);
 
-    const formDataToSubmit = {
-      title: formData.title,
-      description: formData.description,
-      category: formData.category,
-      language: formData.language,
-      fileName: formData.fileName,
-      fileUrl: `/forms/${formData.fileName}`, // Simulated file URL
-      downloads: 0,
-      uploadedAt: new Date().toISOString()
-    };
-
-    if (isEdit) {
-      // Update existing form
-      const index = forms.findIndex(f => f.id === parseInt(id));
-      if (index !== -1) {
-        forms[index] = {
-          ...forms[index],
-          ...formDataToSubmit,
-          id: parseInt(id),
-          updatedAt: new Date().toISOString()
-        };
-      }
-      console.log('Updating form:', forms[index]);
-    } else {
-      // Add new form
-      const newForm = {
-        ...formDataToSubmit,
-        id: forms.length > 0 ? Math.max(...forms.map(f => f.id)) + 1 : 1,
-        createdAt: new Date().toISOString()
+      const data = {
+        titleEn: formData.titleEn,
+        titleMr: formData.titleMr,
+        descriptionEn: formData.descriptionEn,
+        descriptionMr: formData.descriptionMr,
+        category: formData.category,
+        language: formData.language
       };
-      forms.push(newForm);
-      console.log('Creating form:', newForm);
-    }
 
-    // Save to localStorage
-    localStorage.setItem('FORMS', JSON.stringify(forms));
-    console.log('Form saved to localStorage');
-    console.log('File:', formData.file);
-    
-    // Navigate back to forms list
-    alert(isEdit ? 'Form updated successfully!' : 'Form uploaded successfully!');
-    navigate('/admin/forms');
+      if (isEdit) {
+        // Update existing form
+        await updateForm(
+          id,
+          data,
+          formData.file, // null if no new file
+          formData.existingFileUrl,
+          (progress) => setUploadProgress(progress)
+        );
+        alert('Form updated successfully!');
+      } else {
+        // Create new form
+        await createForm(
+          data,
+          formData.file,
+          (progress) => setUploadProgress(progress)
+        );
+        alert('Form uploaded successfully!');
+      }
+
+      navigate('/admin/forms');
+    } catch (error) {
+      console.error('Error saving form:', error);
+      alert(`Failed to ${isEdit ? 'update' : 'upload'} form: ${error.message}`);
+    } finally {
+      setLoading(false);
+      setUploadProgress(0);
+    }
   };
 
   return (
@@ -279,6 +275,22 @@ function FormUpload() {
                 <p className="text-red-500 text-sm mt-1">{errors.file}</p>
               )}
             </div>
+
+            {/* Upload Progress */}
+            {loading && uploadProgress > 0 && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Uploading...</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-orange-500 to-orange-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -289,19 +301,35 @@ function FormUpload() {
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Title */}
+            {/* Title English */}
             <div className="md:col-span-2">
-              <BilingualInput
-                label="Form Title"
-                name="title"
-                value={formData.title}
-                onChange={(value) => handleChange('title', value)}
-                required
-                placeholder="Enter form title"
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Form Title (English) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.titleEn}
+                onChange={(e) => handleChange('titleEn', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                placeholder="Enter form title in English"
               />
-              {errors.title && (
-                <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+              {errors.titleEn && (
+                <p className="text-red-500 text-sm mt-1">{errors.titleEn}</p>
               )}
+            </div>
+
+            {/* Title Marathi */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Form Title (Marathi)
+              </label>
+              <input
+                type="text"
+                value={formData.titleMr}
+                onChange={(e) => handleChange('titleMr', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                placeholder="फॉर्मचे शीर्षक मराठीत प्रविष्ट करा"
+              />
             </div>
 
             {/* Category */}
@@ -348,20 +376,37 @@ function FormUpload() {
             Description
           </h2>
           
-          <div>
-            <BilingualInput
-              label="Description"
-              name="description"
-              type="textarea"
-              rows={4}
-              value={formData.description}
-              onChange={(value) => handleChange('description', value)}
-              required
-              placeholder="Describe the form and its purpose"
-            />
-            {errors.description && (
-              <p className="text-red-500 text-sm mt-1">{errors.description}</p>
-            )}
+          <div className="space-y-4">
+            {/* Description English */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description (English) <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                rows={4}
+                value={formData.descriptionEn}
+                onChange={(e) => handleChange('descriptionEn', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                placeholder="Describe the form and its purpose in English"
+              />
+              {errors.descriptionEn && (
+                <p className="text-red-500 text-sm mt-1">{errors.descriptionEn}</p>
+              )}
+            </div>
+
+            {/* Description Marathi */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description (Marathi)
+              </label>
+              <textarea
+                rows={4}
+                value={formData.descriptionMr}
+                onChange={(e) => handleChange('descriptionMr', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                placeholder="फॉर्मचे वर्णन आणि त्याचा उद्देश मराठीत लिहा"
+              />
+            </div>
           </div>
         </div>
 
@@ -371,15 +416,17 @@ function FormUpload() {
             type="button"
             onClick={() => navigate('/admin/forms')}
             className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            disabled={loading}
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all flex items-center gap-2"
+            className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={loading}
           >
             <Save className="w-4 h-4" />
-            {isEdit ? 'Update Form' : 'Upload Form'}
+            {loading ? (isEdit ? 'Updating...' : 'Uploading...') : (isEdit ? 'Update Form' : 'Upload Form')}
           </button>
         </div>
       </form>

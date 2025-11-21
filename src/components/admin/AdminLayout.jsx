@@ -38,6 +38,7 @@ const AdminLayout = () => {
     { path: '/admin/financials', label: 'Financials', icon: DollarSign },
     { path: '/admin/notices', label: 'Notices & Tenders', icon: Bell },
     { path: '/admin/grievances', label: 'Grievances', icon: MessageSquare },
+    { path: '/admin/village-statistics', label: 'Village Statistics', icon: FileText },
     { path: '/admin/settings', label: 'Settings', icon: Settings },
   ];
 

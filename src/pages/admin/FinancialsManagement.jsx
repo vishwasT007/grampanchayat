@@ -16,131 +16,35 @@ import {
   FileText
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { getAllRecords, deleteRecord } from '../../services/financialService';
 
 const FinancialsManagement = () => {
   const { language } = useLanguage();
   const navigate = useNavigate();
 
-  // Initial mock data
-  const initialTransactions = [
-    {
-      id: 1,
-      type: 'INCOME',
-      category: 'TAX',
-      subcategory: 'Property Tax',
-      subcategoryMr: 'मालमत्ता कर',
-      amount: 150000,
-      description: 'Property tax collection for Q1 2025',
-      descriptionMr: 'Q1 2025 साठी मालमत्ता कर संकलन',
-      transactionDate: '2025-01-15',
-      paymentMode: 'ONLINE',
-      referenceNumber: 'TAX/2025/001',
-      receivedFrom: 'Various Citizens',
-      receivedFromMr: 'विविध नागरिक',
-      attachment: null,
-      createdAt: '2025-01-15T10:30:00'
-    },
-    {
-      id: 2,
-      type: 'EXPENSE',
-      category: 'INFRASTRUCTURE',
-      subcategory: 'Road Repair',
-      subcategoryMr: 'रस्ता दुरुस्ती',
-      amount: 75000,
-      description: 'Repair work on Main Road and Village Road',
-      descriptionMr: 'मुख्य रस्ता आणि गावातील रस्त्यावर दुरुस्ती कामे',
-      transactionDate: '2025-02-10',
-      paymentMode: 'CHEQUE',
-      referenceNumber: 'EXP/2025/045',
-      paidTo: 'ABC Construction Company',
-      paidToMr: 'एबीसी बांधकाम कंपनी',
-      attachment: 'invoice_road_repair.pdf',
-      createdAt: '2025-02-10T14:20:00'
-    },
-    {
-      id: 3,
-      type: 'INCOME',
-      category: 'GRANT',
-      subcategory: 'State Government Grant',
-      subcategoryMr: 'राज्य शासन अनुदान',
-      amount: 500000,
-      description: 'State grant for rural development schemes',
-      descriptionMr: 'ग्रामीण विकास योजनांसाठी राज्य अनुदान',
-      transactionDate: '2025-03-01',
-      paymentMode: 'NEFT',
-      referenceNumber: 'GRANT/2025/STATE/12',
-      receivedFrom: 'Maharashtra State Government',
-      receivedFromMr: 'महाराष्ट्र राज्य शासन',
-      attachment: 'grant_sanction_letter.pdf',
-      createdAt: '2025-03-01T09:15:00'
-    },
-    {
-      id: 4,
-      type: 'EXPENSE',
-      category: 'SALARY',
-      subcategory: 'Staff Salaries',
-      subcategoryMr: 'कर्मचारी वेतन',
-      amount: 120000,
-      description: 'Monthly salary payment for March 2025',
-      descriptionMr: 'मार्च 2025 साठी मासिक वेतन',
-      transactionDate: '2025-03-31',
-      paymentMode: 'BANK_TRANSFER',
-      referenceNumber: 'SAL/2025/03',
-      paidTo: 'Staff Members',
-      paidToMr: 'कर्मचारी सदस्य',
-      attachment: null,
-      createdAt: '2025-03-31T16:00:00'
-    },
-    {
-      id: 5,
-      type: 'EXPENSE',
-      category: 'UTILITIES',
-      subcategory: 'Electricity Bill',
-      subcategoryMr: 'वीज बिल',
-      amount: 8500,
-      description: 'Electricity charges for Panchayat office',
-      descriptionMr: 'पंचायत कार्यालयासाठी वीज शुल्क',
-      transactionDate: '2025-04-05',
-      paymentMode: 'ONLINE',
-      referenceNumber: 'UTIL/2025/ELEC/04',
-      paidTo: 'Maharashtra State Electricity Board',
-      paidToMr: 'महाराष्ट्र राज्य वीज मंडळ',
-      attachment: null,
-      createdAt: '2025-04-05T11:30:00'
-    }
-  ];
-
-  // Load transactions from localStorage or use initial data
-  const [transactions, setTransactions] = useState(() => {
-    const savedTransactions = localStorage.getItem('TRANSACTIONS');
-    console.log('Admin: Loading Transactions:', savedTransactions ? 'Found' : 'Not Found');
-    
-    if (savedTransactions) {
-      try {
-        const parsed = JSON.parse(savedTransactions);
-        console.log('Admin: Parsed Transactions:', parsed);
-        return parsed;
-      } catch (error) {
-        console.error('Admin: Error parsing transactions:', error);
-        return initialTransactions;
-      }
-    }
-    // If no saved data, use initial mock data and save it
-    localStorage.setItem('TRANSACTIONS', JSON.stringify(initialTransactions));
-    console.log('Admin: Initialized with mock data');
-    return initialTransactions;
-  });
-
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('ALL');
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
 
-  // Save to localStorage whenever transactions change
+  // Load transactions from Firebase
   useEffect(() => {
-    console.log('Admin: Saving transactions to localStorage:', transactions.length);
-    localStorage.setItem('TRANSACTIONS', JSON.stringify(transactions));
-  }, [transactions]);
+    const loadTransactions = async () => {
+      try {
+        setLoading(true);
+        const records = await getAllRecords();
+        setTransactions(records);
+      } catch (error) {
+        console.error('Error loading transactions:', error);
+        alert('Failed to load transactions');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadTransactions();
+  }, []);
 
   // Calculate statistics
   const stats = {
@@ -173,9 +77,15 @@ const FinancialsManagement = () => {
     return matchesSearch && matchesType && matchesCategory && matchesDateRange;
   });
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm(language === 'en' ? 'Are you sure you want to delete this transaction?' : 'तुम्हाला खात्री आहे की तुम्ही हा व्यवहार हटवू इच्छिता?')) {
-      setTransactions(transactions.filter(t => t.id !== id));
+      try {
+        await deleteRecord(id);
+        setTransactions(transactions.filter(t => t.id !== id));
+      } catch (error) {
+        console.error('Error deleting transaction:', error);
+        alert('Failed to delete transaction');
+      }
     }
   };
 
@@ -218,6 +128,14 @@ const FinancialsManagement = () => {
   const exportReport = () => {
     alert(language === 'en' ? 'Export functionality will be implemented' : 'निर्यात कार्यक्षमता लागू केली जाईल');
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#ff6b00]"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">

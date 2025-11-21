@@ -1,55 +1,53 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Edit2, Trash2, FileText, Download, Languages } from 'lucide-react';
-import { mockForms } from '../../data/mockData';
+import { getAllForms, deleteForm } from '../../services/formsService';
 
 function FormsManagement() {
   const navigate = useNavigate();
   
-  // Load forms from localStorage or use initial mock data
-  const [forms, setForms] = useState(() => {
-    const savedForms = localStorage.getItem('FORMS');
-    console.log('Admin: Loading Forms:', savedForms ? 'Found' : 'Not Found');
-    
-    if (savedForms) {
-      try {
-        const parsed = JSON.parse(savedForms);
-        console.log('Admin: Parsed Forms:', parsed);
-        return parsed;
-      } catch (error) {
-        console.error('Admin: Error parsing forms:', error);
-        return mockForms;
-      }
-    }
-    // If no saved data, use initial mock data and save it
-    localStorage.setItem('FORMS', JSON.stringify(mockForms));
-    console.log('Admin: Initialized with mock data');
-    return mockForms;
-  });
-
+  const [forms, setForms] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [filterLanguage, setFilterLanguage] = useState('ALL');
 
-  // Save to localStorage whenever forms change
   useEffect(() => {
-    console.log('Admin: Saving forms to localStorage:', forms.length);
-    localStorage.setItem('FORMS', JSON.stringify(forms));
-  }, [forms]);
+    loadForms();
+  }, []);
+
+  const loadForms = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllForms();
+      setForms(data);
+    } catch (error) {
+      console.error('Error loading forms:', error);
+      alert('Failed to load forms. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter forms
   const filteredForms = forms.filter(form => {
     const matchesSearch = 
-      form.title.en.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      form.title.mr.toLowerCase().includes(searchTerm.toLowerCase());
+      form.titleEn.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (form.titleMr && form.titleMr.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = filterCategory === 'ALL' || form.category === filterCategory;
     const matchesLanguage = filterLanguage === 'ALL' || form.language === filterLanguage;
     return matchesSearch && matchesCategory && matchesLanguage;
   });
 
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this form?')) {
-      setForms(forms.filter(form => form.id !== id));
+  const handleDelete = async (id, fileUrl) => {
+    if (window.confirm('Are you sure you want to delete this form? The PDF file will also be removed.')) {
+      try {
+        await deleteForm(id, fileUrl);
+        setForms(forms.filter(form => form.id !== id));
+      } catch (error) {
+        console.error('Error deleting form:', error);
+        alert('Failed to delete form. Please try again.');
+      }
     }
   };
 
@@ -83,10 +81,12 @@ function FormsManagement() {
   };
 
   const handleDownload = (form) => {
-    // In a real app, this would trigger actual file download
-    console.log('Downloading:', form.title.en);
-    // For demo, we'll just show an alert
-    alert(`Downloading: ${form.title.en}`);
+    // Open PDF in new tab for download
+    if (form.fileUrl) {
+      window.open(form.fileUrl, '_blank');
+    } else {
+      alert('No file available for download');
+    }
   };
 
   return (
@@ -106,8 +106,14 @@ function FormsManagement() {
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      {loading ? (
+        <div className="flex justify-center items-center py-16">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-600"></div>
+        </div>
+      ) : (
+        <>
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
@@ -244,23 +250,27 @@ function FormsManagement() {
                   </div>
                   
                   <h3 className="text-xl font-semibold text-gray-800 mb-1">
-                    {form.title.en}
+                    {form.titleEn}
                   </h3>
-                  <p className="text-base text-gray-600 mb-3">{form.title.mr}</p>
+                  {form.titleMr && (
+                    <p className="text-base text-gray-600 mb-3">{form.titleMr}</p>
+                  )}
                   
-                  <p className="text-gray-700 mb-2">{form.description.en}</p>
-                  <p className="text-gray-600 text-sm mb-4">{form.description.mr}</p>
+                  <p className="text-gray-700 mb-2">{form.descriptionEn}</p>
+                  {form.descriptionMr && (
+                    <p className="text-gray-600 text-sm mb-4">{form.descriptionMr}</p>
+                  )}
 
                   {/* File Info */}
                   <div className="flex items-center gap-6 text-sm text-gray-500">
                     <div className="flex items-center gap-2">
                       <FileText className="w-4 h-4" />
-                      <span>PDF Document</span>
+                      <span>{form.fileName || 'PDF Document'}</span>
                     </div>
-                    {form.downloads && (
+                    {form.fileSize && (
                       <div className="flex items-center gap-2">
                         <Download className="w-4 h-4" />
-                        <span>{form.downloads} downloads</span>
+                        <span>{(form.fileSize / 1024).toFixed(2)} KB</span>
                       </div>
                     )}
                   </div>
@@ -283,7 +293,7 @@ function FormsManagement() {
                     <Edit2 className="w-5 h-5" />
                   </button>
                   <button
-                    onClick={() => handleDelete(form.id)}
+                    onClick={() => handleDelete(form.id, form.fileUrl)}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     title="Delete"
                   >
@@ -295,6 +305,8 @@ function FormsManagement() {
           ))
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }

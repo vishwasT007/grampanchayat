@@ -1,53 +1,51 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Edit2, Trash2, Bell, FileText, Megaphone, Calendar, Eye, EyeOff } from 'lucide-react';
-import { mockNotices } from '../../data/mockData';
+import { getAllNotices, deleteNotice } from '../../services/noticesService';
 
 function NoticesManagement() {
   const navigate = useNavigate();
   
-  // Load notices from localStorage or use initial mock data
-  const [notices, setNotices] = useState(() => {
-    const savedNotices = localStorage.getItem('NOTICES');
-    console.log('Admin: Loading Notices:', savedNotices ? 'Found' : 'Not Found');
-    
-    if (savedNotices) {
-      try {
-        const parsed = JSON.parse(savedNotices);
-        console.log('Admin: Parsed Notices:', parsed);
-        return parsed;
-      } catch (error) {
-        console.error('Admin: Error parsing notices:', error);
-        return mockNotices;
-      }
-    }
-    // If no saved data, use initial mock data and save it
-    localStorage.setItem('NOTICES', JSON.stringify(mockNotices));
-    console.log('Admin: Initialized with mock data');
-    return mockNotices;
-  });
-
+  const [notices, setNotices] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('ALL');
 
-  // Save to localStorage whenever notices change
   useEffect(() => {
-    console.log('Admin: Saving notices to localStorage:', notices.length);
-    localStorage.setItem('NOTICES', JSON.stringify(notices));
-  }, [notices]);
+    loadNotices();
+  }, []);
+
+  const loadNotices = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllNotices();
+      setNotices(data);
+    } catch (error) {
+      console.error('Error loading notices:', error);
+      alert('Failed to load notices. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter notices
   const filteredNotices = notices.filter(notice => {
     const matchesSearch = 
-      notice.title.en.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      notice.title.mr.toLowerCase().includes(searchTerm.toLowerCase());
+      notice.titleEn.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (notice.titleMr && notice.titleMr.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesType = filterType === 'ALL' || notice.type === filterType;
     return matchesSearch && matchesType;
   });
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this notice?')) {
-      setNotices(notices.filter(notice => notice.id !== id));
+      try {
+        await deleteNotice(id);
+        setNotices(notices.filter(notice => notice.id !== id));
+      } catch (error) {
+        console.error('Error deleting notice:', error);
+        alert('Failed to delete notice. Please try again.');
+      }
     }
   };
 
@@ -111,8 +109,14 @@ function NoticesManagement() {
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      {loading ? (
+        <div className="flex justify-center items-center py-16">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-600"></div>
+        </div>
+      ) : (
+        <>
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg">
@@ -249,9 +253,11 @@ function NoticesManagement() {
                     )}
                   </div>
                   <h3 className="text-xl font-semibold text-gray-800 mb-1">
-                    {notice.title.en}
+                    {notice.titleEn}
                   </h3>
-                  <p className="text-base text-gray-600 mb-3">{notice.title.mr}</p>
+                  {notice.titleMr && (
+                    <p className="text-base text-gray-600 mb-3">{notice.titleMr}</p>
+                  )}
                   
                   <div className="flex items-center gap-6 text-sm text-gray-600 mb-3">
                     <div className="flex items-center gap-1">
@@ -264,8 +270,10 @@ function NoticesManagement() {
                     </div>
                   </div>
 
-                  <p className="text-gray-700 mb-2">{notice.description.en}</p>
-                  <p className="text-gray-600 text-sm">{notice.description.mr}</p>
+                  <p className="text-gray-700 mb-2">{notice.descriptionEn}</p>
+                  {notice.descriptionMr && (
+                    <p className="text-gray-600 text-sm">{notice.descriptionMr}</p>
+                  )}
                 </div>
 
                 {/* Actions */}
@@ -290,6 +298,8 @@ function NoticesManagement() {
           ))
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }

@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
-import BilingualInput from '../../components/common/BilingualInput';
-import { mockNotices } from '../../data/mockData';
+import { getNoticeById, createNotice, updateNotice } from '../../services/noticesService';
 
 function NoticeForm() {
   const navigate = useNavigate();
@@ -10,54 +9,60 @@ function NoticeForm() {
   const isEdit = Boolean(id);
 
   const [formData, setFormData] = useState({
-    title: { en: '', mr: '' },
+    titleEn: '',
+    titleMr: '',
     type: 'ANNOUNCEMENT',
-    description: { en: '', mr: '' },
+    descriptionEn: '',
+    descriptionMr: '',
     startDate: '',
     endDate: '',
     showOnHome: false
   });
 
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(false);
 
   useEffect(() => {
     if (isEdit) {
-      // Load notices from localStorage
-      const savedNotices = localStorage.getItem('NOTICES');
-      if (savedNotices) {
-        try {
-          const notices = JSON.parse(savedNotices);
-          const notice = notices.find(n => n.id === parseInt(id));
-          if (notice) {
-            console.log('Loading notice for edit:', notice);
-            setFormData({
-              title: notice.title,
-              type: notice.type,
-              description: notice.description,
-              startDate: notice.startDate,
-              endDate: notice.endDate,
-              showOnHome: notice.showOnHome || false
-            });
-          } else {
-            console.error('Notice not found with id:', id);
-          }
-        } catch (error) {
-          console.error('Error loading notice:', error);
-        }
-      }
+      loadNotice();
     }
   }, [id, isEdit]);
 
-  const handleChange = (field, value) => {
+  const loadNotice = async () => {
+    try {
+      setInitialLoading(true);
+      const notice = await getNoticeById(id);
+      setFormData({
+        titleEn: notice.titleEn || '',
+        titleMr: notice.titleMr || '',
+        type: notice.type || 'ANNOUNCEMENT',
+        descriptionEn: notice.descriptionEn || '',
+        descriptionMr: notice.descriptionMr || '',
+        startDate: notice.startDate || '',
+        endDate: notice.endDate || '',
+        showOnHome: notice.showOnHome || false
+      });
+    } catch (error) {
+      console.error('Error loading notice:', error);
+      alert('Failed to load notice. Redirecting to notices list.');
+      navigate('/admin/notices');
+    } finally {
+      setInitialLoading(false);
+    }
+  };
+
+  const handleChange = (field, language, value) => {
+    const fieldName = language ? `${field}${language.charAt(0).toUpperCase() + language.slice(1)}` : field;
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [fieldName]: value
     }));
     // Clear error when user types
-    if (errors[field]) {
+    if (errors[fieldName]) {
       setErrors(prev => ({
         ...prev,
-        [field]: ''
+        [fieldName]: ''
       }));
     }
   };
@@ -79,11 +84,11 @@ function NoticeForm() {
   const validate = () => {
     const newErrors = {};
 
-    if (!formData.title.en.trim()) {
-      newErrors.title = 'Title is required';
+    if (!formData.titleEn.trim()) {
+      newErrors.titleEn = 'Title is required';
     }
-    if (!formData.description.en.trim()) {
-      newErrors.description = 'Description is required';
+    if (!formData.descriptionEn.trim()) {
+      newErrors.descriptionEn = 'Description is required';
     }
     if (!formData.startDate) {
       newErrors.startDate = 'Start date is required';
@@ -103,66 +108,51 @@ function NoticeForm() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!validate()) {
       return;
     }
 
-    // Load existing notices from localStorage
-    const savedNotices = localStorage.getItem('NOTICES');
-    let notices = [];
-    
-    if (savedNotices) {
-      try {
-        notices = JSON.parse(savedNotices);
-      } catch (error) {
-        console.error('Error parsing notices:', error);
-      }
-    }
-
-    const noticeData = {
-      title: formData.title,
-      type: formData.type,
-      description: formData.description,
-      startDate: formData.startDate,
-      endDate: formData.endDate,
-      showOnHome: formData.showOnHome,
-      status: 'ACTIVE'
-    };
-
-    if (isEdit) {
-      // Update existing notice
-      const index = notices.findIndex(n => n.id === parseInt(id));
-      if (index !== -1) {
-        notices[index] = {
-          ...notices[index],
-          ...noticeData,
-          id: parseInt(id),
-          updatedAt: new Date().toISOString()
-        };
-      }
-      console.log('Updating notice:', notices[index]);
-    } else {
-      // Add new notice
-      const newNotice = {
-        ...noticeData,
-        id: notices.length > 0 ? Math.max(...notices.map(n => n.id)) + 1 : 1,
-        createdAt: new Date().toISOString()
+    try {
+      setLoading(true);
+      
+      const noticeData = {
+        titleEn: formData.titleEn,
+        titleMr: formData.titleMr,
+        type: formData.type,
+        descriptionEn: formData.descriptionEn,
+        descriptionMr: formData.descriptionMr,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        showOnHome: formData.showOnHome
       };
-      notices.push(newNotice);
-      console.log('Creating notice:', newNotice);
-    }
 
-    // Save to localStorage
-    localStorage.setItem('NOTICES', JSON.stringify(notices));
-    console.log('Notice saved to localStorage');
-    
-    // Navigate back to notices list
-    alert(isEdit ? 'Notice updated successfully!' : 'Notice created successfully!');
-    navigate('/admin/notices');
+      if (isEdit) {
+        await updateNotice(id, noticeData);
+        alert('Notice updated successfully!');
+      } else {
+        await createNotice(noticeData);
+        alert('Notice created successfully!');
+      }
+      
+      navigate('/admin/notices');
+    } catch (error) {
+      console.error('Error saving notice:', error);
+      alert('Failed to save notice. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (initialLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -172,6 +162,7 @@ function NoticeForm() {
           <button
             onClick={() => navigate('/admin/notices')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            disabled={loading}
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -194,54 +185,81 @@ function NoticeForm() {
             Basic Information
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Title with Auto-Translation */}
-            <div className="md:col-span-2">
-              <BilingualInput
-                label="Notice Title"
-                name="title"
-                value={formData.title}
-                onChange={(value) => handleChange('title', value)}
-                required
-                placeholder="Enter notice title"
+          <div className="grid grid-cols-1 gap-6">
+            {/* Title - English */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Title (English) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.titleEn}
+                onChange={(e) => handleChange('title', 'en', e.target.value)}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                  errors.titleEn ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="Enter notice title in English"
+                disabled={loading}
               />
-              {errors.title && (
-                <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+              {errors.titleEn && (
+                <p className="text-red-500 text-sm mt-1">{errors.titleEn}</p>
               )}
             </div>
 
-            {/* Type */}
+            {/* Title - Marathi */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Type <span className="text-red-500">*</span>
+                Title (Marathi)
               </label>
-              <select
-                name="type"
-                value={formData.type}
-                onChange={handleSimpleChange}
+              <input
+                type="text"
+                value={formData.titleMr}
+                onChange={(e) => handleChange('title', 'mr', e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              >
-                <option value="ANNOUNCEMENT">Announcement</option>
-                <option value="MEETING">Meeting</option>
-                <option value="TENDER">Tender</option>
-              </select>
+                placeholder="सूचना शीर्षक मराठीत प्रविष्ट करा"
+                disabled={loading}
+              />
             </div>
 
-            {/* Show on Home */}
-            <div className="flex items-center">
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="showOnHome"
-                  checked={formData.showOnHome}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Type <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="type"
+                  value={formData.type}
                   onChange={handleSimpleChange}
-                  className="w-5 h-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
-                />
-                <span className="ml-3 text-sm font-medium text-gray-700">
-                  Show on Homepage
-                </span>
-              </label>
-              <p className="text-xs text-gray-500 ml-2">(Display in home page notices)</p>
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  disabled={loading}
+                >
+                  <option value="ANNOUNCEMENT">Announcement</option>
+                  <option value="MEETING">Meeting</option>
+                  <option value="TENDER">Tender</option>
+                  <option value="EVENT">Event</option>
+                  <option value="HOLIDAY">Holiday</option>
+                  <option value="URGENT">Urgent</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+
+              {/* Show on Home */}
+              <div className="flex items-center">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="showOnHome"
+                    checked={formData.showOnHome}
+                    onChange={handleSimpleChange}
+                    className="w-5 h-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                    disabled={loading}
+                  />
+                  <span className="ml-3 text-sm font-medium text-gray-700">
+                    Show on Homepage
+                  </span>
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -253,20 +271,40 @@ function NoticeForm() {
           </h2>
           
           <div className="space-y-4">
-            {/* Description with Auto-Translation */}
-            <BilingualInput
-              label="Notice Description"
-              name="description"
-              type="textarea"
-              rows={6}
-              value={formData.description}
-              onChange={(value) => handleChange('description', value)}
-              required
-              placeholder="Enter detailed description of the notice..."
-            />
-            {errors.description && (
-              <p className="text-red-500 text-sm mt-1">{errors.description}</p>
-            )}
+            {/* Description - English */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description (English) <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                rows={6}
+                value={formData.descriptionEn}
+                onChange={(e) => handleChange('description', 'en', e.target.value)}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                  errors.descriptionEn ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="Enter detailed description in English"
+                disabled={loading}
+              />
+              {errors.descriptionEn && (
+                <p className="text-red-500 text-sm mt-1">{errors.descriptionEn}</p>
+              )}
+            </div>
+
+            {/* Description - Marathi */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description (Marathi)
+              </label>
+              <textarea
+                rows={6}
+                value={formData.descriptionMr}
+                onChange={(e) => handleChange('description', 'mr', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                placeholder="मराठीत तपशीलवार वर्णन प्रविष्ट करा"
+                disabled={loading}
+              />
+            </div>
           </div>
         </div>
 
@@ -290,6 +328,7 @@ function NoticeForm() {
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
                   errors.startDate ? 'border-red-500' : 'border-gray-300'
                 }`}
+                disabled={loading}
               />
               {errors.startDate && (
                 <p className="text-red-500 text-sm mt-1">{errors.startDate}</p>
@@ -310,6 +349,7 @@ function NoticeForm() {
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
                   errors.endDate ? 'border-red-500' : 'border-gray-300'
                 }`}
+                disabled={loading}
               />
               {errors.endDate && (
                 <p className="text-red-500 text-sm mt-1">{errors.endDate}</p>
@@ -332,16 +372,27 @@ function NoticeForm() {
           <button
             type="button"
             onClick={() => navigate('/admin/notices')}
-            className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            disabled={loading}
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all flex items-center gap-2"
+            className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={loading}
           >
-            <Save className="w-4 h-4" />
-            {isEdit ? 'Update Notice' : 'Save Notice'}
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                {isEdit ? 'Updating...' : 'Saving...'}
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                {isEdit ? 'Update Notice' : 'Save Notice'}
+              </>
+            )}
           </button>
         </div>
       </form>

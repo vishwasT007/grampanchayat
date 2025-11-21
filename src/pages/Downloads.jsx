@@ -8,45 +8,30 @@ import {
   Filter,
   File
 } from 'lucide-react';
+import { getAllForms } from '../services/formsService';
 
 const Downloads = () => {
   const { language } = useLanguage();
   const [forms, setForms] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('ALL');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadForms = () => {
-      const savedForms = localStorage.getItem('FORMS');
-      console.log('Loading Forms:', savedForms ? 'Found' : 'Not Found');
-      
-      if (savedForms) {
-        try {
-          const parsed = JSON.parse(savedForms);
-          console.log('Parsed Forms:', parsed);
-          setForms(parsed);
-        } catch (error) {
-          console.error('Error parsing forms:', error);
-          setForms([]);
-        }
-      } else {
-        console.log('No forms in localStorage');
+    const loadForms = async () => {
+      try {
+        setLoading(true);
+        const fetchedForms = await getAllForms();
+        setForms(fetchedForms);
+      } catch (error) {
+        console.error('Error loading forms:', error);
         setForms([]);
+      } finally {
+        setLoading(false);
       }
     };
 
     loadForms();
-
-    // Listen for storage changes
-    const handleStorageChange = (e) => {
-      if (e.key === 'FORMS') {
-        console.log('Forms updated!');
-        loadForms();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   // Get unique categories
@@ -55,8 +40,8 @@ const Downloads = () => {
   // Filter forms
   const filteredForms = forms.filter(form => {
     const matchesSearch = 
-      form.title.en.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      form.title.mr.toLowerCase().includes(searchTerm.toLowerCase());
+      (form.titleEn && form.titleEn.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (form.titleMr && form.titleMr.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = filterCategory === 'ALL' || form.category === filterCategory;
     return matchesSearch && matchesCategory;
   });
@@ -73,13 +58,16 @@ const Downloads = () => {
   };
 
   const handleDownload = (form) => {
-    // In a real app, this would trigger actual file download
-    console.log('Downloading:', form.title.en);
-    alert(
-      language === 'en' 
-        ? `Downloading: ${form.title.en}\n\nNote: This is a demo. In production, the actual PDF file would be downloaded.`
-        : `डाउनलोड करत आहे: ${form.title.mr}\n\nनोंद: हे एक डेमो आहे. प्रत्यक्षात, PDF फाइल डाउनलोड होईल.`
-    );
+    // Open the Firebase Storage URL in a new tab
+    if (form.fileUrl) {
+      window.open(form.fileUrl, '_blank');
+    } else {
+      alert(
+        language === 'en' 
+          ? 'Download link not available'
+          : 'डाउनलोड दुवा उपलब्ध नाही'
+      );
+    }
   };
 
   return (
@@ -138,7 +126,11 @@ const Downloads = () => {
       {/* Forms List */}
       <section className="py-12">
         <div className="container-custom">
-          {filteredForms.length > 0 ? (
+          {loading ? (
+            <div className="flex justify-center items-center py-16">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#ff6b00]"></div>
+            </div>
+          ) : filteredForms.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredForms.map((form) => (
                 <div 
@@ -154,7 +146,7 @@ const Downloads = () => {
                         </div>
                         <div className="flex-1">
                           <h3 className="font-bold text-white text-lg leading-tight">
-                            {language === 'en' ? form.title.en : form.title.mr}
+                            {language === 'en' ? form.titleEn : (form.titleMr || form.titleEn)}
                           </h3>
                         </div>
                       </div>
@@ -164,7 +156,7 @@ const Downloads = () => {
                   {/* Card Body */}
                   <div className="p-5">
                     <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                      {language === 'en' ? form.description.en : form.description.mr}
+                      {language === 'en' ? form.descriptionEn : (form.descriptionMr || form.descriptionEn)}
                     </p>
 
                     {/* Metadata */}
@@ -191,11 +183,18 @@ const Downloads = () => {
                   </div>
 
                   {/* File Info Footer */}
-                  {form.fileUrl && (
+                  {form.fileName && (
                     <div className="px-5 py-3 bg-gray-50 border-t border-gray-200">
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <File size={14} />
-                        <span className="truncate">{form.fileUrl}</span>
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <div className="flex items-center gap-2">
+                          <File size={14} />
+                          <span className="truncate">{form.fileName}</span>
+                        </div>
+                        {form.fileSize && (
+                          <span className="ml-2 text-gray-400">
+                            {(form.fileSize / 1024).toFixed(1)} KB
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}

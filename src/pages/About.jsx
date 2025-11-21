@@ -1,29 +1,31 @@
 import { useLanguage } from '../context/LanguageContext';
 import { useEffect, useState } from 'react';
+import { getAboutContent } from '../services/pagesService';
 
 const About = () => {
   const { t, getContent } = useLanguage();
 
-  // Load content from localStorage or use defaults
+  // Load content from Firebase or use defaults
   const [pageContent, setPageContent] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadContent = () => {
-      const savedContent = localStorage.getItem('ABOUT_PAGE_CONTENT');
-      console.log('Loading About Page Content:', savedContent ? 'Found' : 'Not Found');
-      
-      if (savedContent) {
-        try {
-          const parsed = JSON.parse(savedContent);
-          console.log('Parsed About Content:', parsed);
-          setPageContent(parsed);
-        } catch (error) {
-          console.error('Error parsing saved content:', error);
+    const loadContent = async () => {
+      try {
+        setLoading(true);
+        const content = await getAboutContent();
+        
+        if (content) {
+          setPageContent(content);
+        } else {
+          // Use default content if nothing in Firebase
           setPageContent(getDefaultContent());
         }
-      } else {
-        console.log('Using default about content');
+      } catch (error) {
+        console.error('Error loading about content:', error);
         setPageContent(getDefaultContent());
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -79,18 +81,15 @@ const About = () => {
     });
 
     loadContent();
-
-    // Listen for storage changes (when admin saves)
-    const handleStorageChange = (e) => {
-      if (e.key === 'ABOUT_PAGE_CONTENT') {
-        console.log('About content updated!');
-        loadContent();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#ff6b00]"></div>
+      </div>
+    );
+  }
 
   if (!pageContent) return <div>Loading...</div>;
 

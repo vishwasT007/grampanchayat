@@ -1,0 +1,129 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===========================
+    // Helper Functions
+    // ===========================
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user is admin
+    function isAdmin() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Check if user owns the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // ===========================
+    // Village Statistics Collections
+    // ===========================
+    
+    // Villages - Public read, Admin write
+    match /villages/{villageId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Demographics - Public read, Admin write
+    match /demographics/{demographicId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Population Breakdowns - Public read, Admin write
+    match /populationBreakdowns/{breakdownId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Village Groups - Public read, Admin write
+    match /villageGroups/{groupId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Infrastructure - Public read, Admin write
+    match /infrastructure/{infrastructureId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Statistics Years - Public read, Admin write
+    match /statisticsYears/{yearId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // ===========================
+    // Content Collections
+    // ===========================
+    
+    // News - Public read, Admin write
+    match /news/{newsId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Schemes - Public read, Admin write
+    match /schemes/{schemeId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Achievements - Public read, Admin write
+    match /achievements/{achievementId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // ===========================
+    // User Interactions
+    // ===========================
+    
+    // Complaints - Anyone can create, Admin can manage
+    match /complaints/{complaintId} {
+      allow read: if true; // Public can view complaints
+      allow create: if true; // Anyone can submit
+      allow update: if isAdmin() || isOwner(resource.data.userId); // Admin or owner
+      allow delete: if isAdmin();
+    }
+    
+    // ===========================
+    // Settings & Configuration
+    // ===========================
+    
+    // Site Settings - Public read, Admin write
+    match /siteSettings/{settingId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // ===========================
+    // User Management
+    // ===========================
+    
+    // Users - Users can read own data, Admin can manage all
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAdmin(); // Only admin can create users
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // ===========================
+    // Test Collection (for development)
+    // ===========================
+    
+    match /test/{testId} {
+      allow read, write: if true; // Open for testing
+    }
+  }
+}

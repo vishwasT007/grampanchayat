@@ -1,30 +1,32 @@
 import { useLanguage } from '../context/LanguageContext';
 import { useEffect, useState } from 'react';
 import { School, Baby, BookOpen, Users, TrendingUp } from 'lucide-react';
+import { getEducationContent } from '../services/pagesService';
 
 const Education = () => {
   const { t, language } = useLanguage();
   
-  // Load content from localStorage or use defaults
+  // Load content from Firebase or use defaults
   const [pageContent, setPageContent] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadContent = () => {
-      const savedContent = localStorage.getItem('EDUCATION_PAGE_CONTENT');
-      console.log('Loading Education Page Content:', savedContent ? 'Found' : 'Not Found');
-      
-      if (savedContent) {
-        try {
-          const parsed = JSON.parse(savedContent);
-          console.log('Parsed Content:', parsed);
-          setPageContent(parsed);
-        } catch (error) {
-          console.error('Error parsing saved content:', error);
+    const loadContent = async () => {
+      try {
+        setLoading(true);
+        const content = await getEducationContent();
+        
+        if (content) {
+          setPageContent(content);
+        } else {
+          // Use default content if nothing in Firebase
           setPageContent(getDefaultContent());
         }
-      } else {
-        console.log('Using default content');
+      } catch (error) {
+        console.error('Error loading education content:', error);
         setPageContent(getDefaultContent());
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -45,18 +47,15 @@ const Education = () => {
     });
 
     loadContent();
-
-    // Listen for storage changes (when admin saves)
-    const handleStorageChange = (e) => {
-      if (e.key === 'EDUCATION_PAGE_CONTENT') {
-        console.log('Education content updated!');
-        loadContent();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#ff6b00]"></div>
+      </div>
+    );
+  }
 
   if (!pageContent) return <div>Loading...</div>;
 

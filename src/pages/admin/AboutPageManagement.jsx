@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import BilingualInput from '../../components/common/BilingualInput';
+import { getAboutContent, updateAboutContent } from '../../services/pagesService';
 
 const AboutPageManagement = () => {
   const { language } = useLanguage();
@@ -89,18 +90,28 @@ const AboutPageManagement = () => {
 
   const [errors, setErrors] = useState({});
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // Load saved data from localStorage
+  // Load saved data from Firebase
   useEffect(() => {
-    const savedData = localStorage.getItem('ABOUT_PAGE_CONTENT');
-    if (savedData) {
-      const parsed = JSON.parse(savedData);
-      // Ensure villageImage exists in loaded data
-      setFormData({
-        ...parsed,
-        villageImage: parsed.villageImage || ''
-      });
-    }
+    const loadContent = async () => {
+      try {
+        setLoading(true);
+        const content = await getAboutContent();
+        if (content) {
+          setFormData({
+            ...content,
+            villageImage: content.villageImage || ''
+          });
+        }
+      } catch (error) {
+        console.error('Error loading about content:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadContent();
   }, []);
 
   const handleChange = (field, value) => {
@@ -272,28 +283,44 @@ const AboutPageManagement = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (validateForm()) {
-      // Save to localStorage
-      localStorage.setItem('ABOUT_PAGE_CONTENT', JSON.stringify(formData));
-      
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-      
-      alert(
-        language === 'en' 
-          ? 'About page content updated successfully!' 
-          : 'About पृष्ठ सामग्री यशस्वीरित्या अद्यतनित झाली!'
-      );
+      try {
+        setSaving(true);
+        await updateAboutContent(formData);
+        
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+        
+        alert(
+          language === 'en' 
+            ? 'About page content updated successfully!' 
+            : 'About पृष्ठ सामग्री यशस्वीरित्या अद्यतनित झाली!'
+        );
+      } catch (error) {
+        console.error('Error saving about content:', error);
+        alert(
+          language === 'en'
+            ? 'Failed to save about content'
+            : 'सामग्री जतन करण्यात अयशस्वी'
+        );
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
-  const previewPage = () => {
-    // Save current data before preview
-    localStorage.setItem('ABOUT_PAGE_CONTENT', JSON.stringify(formData));
-    window.open('/about', '_blank');
+  const previewPage = async () => {
+    try {
+      // Save current data before preview
+      await updateAboutContent(formData);
+      window.open('/about', '_blank');
+    } catch (error) {
+      console.error('Error saving before preview:', error);
+      alert('Failed to save content before preview');
+    }
   };
 
   return (
@@ -666,15 +693,19 @@ const AboutPageManagement = () => {
             type="button"
             onClick={() => navigate('/admin/dashboard')}
             className="px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            disabled={saving}
           >
             {language === 'en' ? 'Cancel' : 'रद्द करा'}
           </button>
           <button
             type="submit"
-            className="px-6 py-2 bg-gradient-to-r from-[#138808] to-[#1aa910] text-white rounded-lg hover:shadow-lg transition-all flex items-center gap-2"
+            className="px-6 py-2 bg-gradient-to-r from-[#138808] to-[#1aa910] text-white rounded-lg hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={saving}
           >
             <Save size={20} />
-            {language === 'en' ? 'Save Changes' : 'बदल जतन करा'}
+            {saving 
+              ? (language === 'en' ? 'Saving...' : 'जतन करत आहे...')
+              : (language === 'en' ? 'Save Changes' : 'बदल जतन करा')}
           </button>
         </div>
       </form>

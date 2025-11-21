@@ -7,7 +7,7 @@ import { useSiteSettings } from '../../context/SiteSettingsContext';
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { language, toggleLanguage, t, getContent } = useLanguage();
-  const siteSettings = useSiteSettings();
+  const { settings: siteSettings } = useSiteSettings();
   const location = useLocation();
 
   const navItems = [
@@ -20,6 +20,7 @@ const Header = () => {
     { path: '/education', label: t('nav.education') },
     { path: '/gallery', label: t('nav.gallery') },
     { path: '/financials', label: t('nav.financials') },
+    { path: '/village-statistics', label: language === 'en' ? 'Statistics' : 'सांख्यिकी' },
     { path: '/notices', label: t('nav.notices') },
     { path: '/contact', label: t('nav.contact') },
   ];

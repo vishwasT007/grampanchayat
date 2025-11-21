@@ -9,56 +9,32 @@ import {
   AlertCircle,
   Clock
 } from 'lucide-react';
+import { getActiveNotices } from '../services/noticesService';
 
 const Notices = () => {
   const { language } = useLanguage();
   const [notices, setNotices] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('ALL');
 
   useEffect(() => {
-    const loadNotices = () => {
-      const savedNotices = localStorage.getItem('NOTICES');
-      console.log('Loading Notices:', savedNotices ? 'Found' : 'Not Found');
-      
-      if (savedNotices) {
-        try {
-          const parsed = JSON.parse(savedNotices);
-          console.log('Parsed Notices:', parsed);
-          // Filter only active notices and sort by start date (newest first)
-          const activeNotices = parsed
-            .filter(notice => {
-              const now = new Date();
-              const end = new Date(notice.endDate);
-              return end >= now; // Show notices that haven't expired
-            })
-            .sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
-          setNotices(activeNotices);
-        } catch (error) {
-          console.error('Error parsing notices:', error);
-          setNotices([]);
-        }
-      } else {
-        console.log('No notices in localStorage');
-        setNotices([]);
-      }
-    };
-
     loadNotices();
-
-    // Listen for storage changes
-    const handleStorageChange = (e) => {
-      if (e.key === 'NOTICES') {
-        console.log('Notices updated!');
-        loadNotices();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Get unique types
-  const types = ['ALL', ...new Set(notices.map(notice => notice.type))];
+  const loadNotices = async () => {
+    try {
+      setLoading(true);
+      const activeNotices = await getActiveNotices();
+      // Sort by start date (newest first)
+      const sorted = activeNotices.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+      setNotices(sorted);
+    } catch (error) {
+      console.error('Error loading notices:', error);
+      setNotices([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter notices
   const filteredNotices = notices.filter(notice => {
@@ -95,6 +71,10 @@ const Notices = () => {
         return 'from-green-500 to-green-600';
       case 'ANNOUNCEMENT':
         return 'from-orange-500 to-orange-600';
+      case 'EVENT':
+        return 'from-purple-500 to-purple-600';
+      case 'URGENT':
+        return 'from-red-500 to-red-600';
       default:
         return 'from-gray-500 to-gray-600';
     }
@@ -103,21 +83,25 @@ const Notices = () => {
   const getTypeBadgeColor = (type) => {
     switch(type) {
       case 'MEETING':
-        return 'bg-blue-100 text-blue-700 border-blue-300';
+        return 'text-blue-700';
       case 'TENDER':
-        return 'bg-green-100 text-green-700 border-green-300';
+        return 'text-green-700';
       case 'ANNOUNCEMENT':
-        return 'bg-orange-100 text-orange-700 border-orange-300';
+        return 'text-orange-700';
+      case 'EVENT':
+        return 'text-purple-700';
+      case 'URGENT':
+        return 'text-red-700';
       default:
-        return 'bg-gray-100 text-gray-700 border-gray-300';
+        return 'text-gray-700';
     }
   };
 
   const isExpiringSoon = (endDate) => {
-    const now = new Date();
     const end = new Date(endDate);
-    const daysUntilExpiry = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
-    return daysUntilExpiry <= 7 && daysUntilExpiry >= 0;
+    const now = new Date();
+    const daysLeft = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+    return daysLeft <= 7 && daysLeft >= 0;
   };
 
   return (
@@ -147,13 +131,13 @@ const Notices = () => {
                 onChange={(e) => setFilterType(e.target.value)}
                 className="px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-[#ff6b00]"
               >
-                {types.map(type => (
-                  <option key={type} value={type}>
-                    {type === 'ALL' 
-                      ? (language === 'en' ? 'All Types' : 'सर्व प्रकार') 
-                      : type}
-                  </option>
-                ))}
+                <option value="ALL">{language === 'en' ? 'All Types' : 'सर्व प्रकार'}</option>
+                <option value="MEETING">Meeting</option>
+                <option value="TENDER">Tender</option>
+                <option value="ANNOUNCEMENT">Announcement</option>
+                <option value="EVENT">Event</option>
+                <option value="URGENT">Urgent</option>
+                <option value="OTHER">Other</option>
               </select>
             </div>
           </div>
@@ -163,7 +147,11 @@ const Notices = () => {
       {/* Notices List */}
       <section className="py-12">
         <div className="container-custom">
-          {filteredNotices.length > 0 ? (
+          {loading ? (
+            <div className="flex justify-center items-center py-16">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-600"></div>
+            </div>
+          ) : filteredNotices.length > 0 ? (
             <div className="space-y-6">
               {filteredNotices.map((notice) => (
                 <div
@@ -190,7 +178,7 @@ const Notices = () => {
                             )}
                           </div>
                           <h2 className="font-bold text-white text-xl">
-                            {language === 'en' ? notice.title.en : notice.title.mr}
+                            {language === 'en' ? notice.titleEn : (notice.titleMr || notice.titleEn)}
                           </h2>
                         </div>
                       </div>
@@ -200,7 +188,7 @@ const Notices = () => {
                   {/* Notice Body */}
                   <div className="p-6">
                     <p className="text-gray-700 text-base mb-6 leading-relaxed">
-                      {language === 'en' ? notice.description.en : notice.description.mr}
+                      {language === 'en' ? notice.descriptionEn : (notice.descriptionMr || notice.descriptionEn)}
                     </p>
 
                     {/* Date Information */}
