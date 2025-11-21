@@ -1,5 +1,5 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { db } from '../config/firebaseConfig';
 
 const COLLECTION_NAME = 'settings';
 const DOCUMENT_ID = 'siteConfig';

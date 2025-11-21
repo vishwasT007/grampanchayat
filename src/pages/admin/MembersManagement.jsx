@@ -1,12 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Edit, Trash2, Search, UserCircle } from 'lucide-react';
 import { mockMembers } from '../../data/mockData';
+import { getMembers, deleteMember } from '../../services/membersService';
 
 const MembersManagement = () => {
-  const [members, setMembers] = useState(mockMembers);
+  const [members, setMembers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('ALL');
+  const [loading, setLoading] = useState(true);
+
+  // Load members from Firebase
+  useEffect(() => {
+    const loadMembers = async () => {
+      try {
+        setLoading(true);
+        const membersData = await getMembers();
+        setMembers(membersData);
+      } catch (error) {
+        console.error('Error loading members:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadMembers();
+  }, []);
 
   const filteredMembers = members.filter(member => {
     const matchesSearch = member.name.en.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -15,10 +34,16 @@ const MembersManagement = () => {
     return matchesSearch && matchesType;
   });
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this member?')) {
-      setMembers(members.filter(m => m.id !== id));
-      // TODO: Save to localStorage or API
+      try {
+        await deleteMember(id);
+        setMembers(members.filter(m => m.id !== id));
+        console.log('Member deleted successfully');
+      } catch (error) {
+        console.error('Error deleting member:', error);
+        alert('Failed to delete member. Please try again.');
+      }
     }
   };
 
@@ -31,6 +56,15 @@ const MembersManagement = () => {
     };
     return colors[type] || 'bg-gray-100 text-gray-700';
   };
+
+  // Show loading spinner
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

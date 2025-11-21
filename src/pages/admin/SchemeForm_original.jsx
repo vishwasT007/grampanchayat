@@ -3,15 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 import BilingualInput from '../../components/common/BilingualInput';
 import { mockSchemes } from '../../data/mockData';
-import { getScheme, createScheme, updateScheme } from '../../services/schemesService';
 
 function SchemeForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = Boolean(id);
 
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: { en: '', mr: '' },
     category: 'CENTRAL',
@@ -25,33 +22,23 @@ function SchemeForm() {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    const loadScheme = async () => {
-      if (isEdit) {
-        try {
-          setLoading(true);
-          const scheme = await getScheme(id);
-          if (scheme) {
-            setFormData({
-              name: scheme.name,
-              category: scheme.category,
-              description: scheme.description,
-              eligibility: scheme.eligibility,
-              documentsRequired: {
-                en: scheme.documentsRequired.en.join('\n'),
-                mr: scheme.documentsRequired.mr.join('\n')
-              },
-              applicationProcess: scheme.applicationProcess,
-              status: scheme.status
-            });
-          }
-        } catch (error) {
-          console.error('Error loading scheme:', error);
-        } finally {
-          setLoading(false);
-        }
+    if (isEdit) {
+      const scheme = mockSchemes.find(s => s.id === parseInt(id));
+      if (scheme) {
+        setFormData({
+          name: scheme.name,
+          category: scheme.category,
+          description: scheme.description,
+          eligibility: scheme.eligibility,
+          documentsRequired: {
+            en: scheme.documentsRequired.en.join('\n'),
+            mr: scheme.documentsRequired.mr.join('\n')
+          },
+          applicationProcess: scheme.applicationProcess,
+          status: scheme.status
+        });
       }
-    };
-    loadScheme();
+    }
   }, [id, isEdit]);
 
   const handleChange = (field, value) => {
@@ -98,41 +85,32 @@ function SchemeForm() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     
     if (!validate()) {
       return;
     }
 
-    try {
-      setSaving(true);
-      const schemeData = {
-        name: formData.name,
-        category: formData.category,
-        description: formData.description,
-        eligibility: formData.eligibility,
-        documentsRequired: {
-          en: formData.documentsRequired.en.split('\n').filter(doc => doc.trim()),
-          mr: formData.documentsRequired.mr.split('\n').filter(doc => doc.trim())
-        },
-        applicationProcess: formData.applicationProcess,
-        status: formData.status
-      };
+    const schemeData = {
+      id: isEdit ? parseInt(id) : Date.now(),
+      name: formData.name,
+      category: formData.category,
+      description: formData.description,
+      eligibility: formData.eligibility,
+      documentsRequired: {
+        en: formData.documentsRequired.en.split('\n').filter(doc => doc.trim()),
+        mr: formData.documentsRequired.mr.split('\n').filter(doc => doc.trim())
+      },
+      applicationProcess: formData.applicationProcess,
+      status: formData.status
+    };
 
-      if (isEdit) {
-        await updateScheme(id, schemeData);
-      } else {
-        await createScheme(schemeData);
-      }
-      
-      navigate('/admin/schemes');
-    } catch (error) {
-      console.error('Error saving scheme:', error);
-      alert('Failed to save scheme. Please try again.');
-    } finally {
-      setSaving(false);
-    }
+    // In a real app, this would save to backend/localStorage
+    console.log(isEdit ? 'Updating scheme:' : 'Creating scheme:', schemeData);
+    
+    // Navigate back to schemes list
+    navigate('/admin/schemes');
   };
 
   return (
@@ -157,15 +135,8 @@ function SchemeForm() {
         </div>
       </div>
 
-      {/* Loading Spinner */}
-      {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-      ) : (
-        <>
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Information */}
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800 mb-4 pb-3 border-b">
@@ -347,23 +318,19 @@ function SchemeForm() {
           <button
             type="button"
             onClick={() => navigate('/admin/schemes')}
-            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            disabled={saving}
+            className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={saving}
+            className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all flex items-center gap-2"
           >
             <Save className="w-4 h-4" />
-            {saving ? 'Saving...' : (isEdit ? 'Update Scheme' : 'Save Scheme')}
+            {isEdit ? 'Update Scheme' : 'Save Scheme'}
           </button>
         </div>
       </form>
-        </>
-      )}
     </div>
   );
 }

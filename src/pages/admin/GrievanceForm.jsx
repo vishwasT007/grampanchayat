@@ -8,6 +8,8 @@ function GrievanceForm() {
   const { id } = useParams();
   const isEdit = Boolean(id);
 
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     title: { en: '', mr: '' },
     description: { en: '', mr: '' },
@@ -176,8 +178,15 @@ function GrievanceForm() {
         </div>
       </div>
 
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Loading Spinner */}
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        </div>
+      ) : (
+        <>
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
         {/* Grievance Details */}
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800 mb-4 pb-3 border-b">
@@ -456,19 +465,23 @@ function GrievanceForm() {
           <button
             type="button"
             onClick={() => navigate('/admin/grievances')}
-            className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            disabled={saving}
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all flex items-center gap-2"
+            className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={saving}
           >
             <Save className="w-4 h-4" />
-            {isEdit ? 'Update Grievance' : 'Save Grievance'}
+            {saving ? 'Saving...' : (isEdit ? 'Update Grievance' : 'Submit Grievance')}
           </button>
         </div>
       </form>
+        </>
+      )}
     </div>
   );
 }

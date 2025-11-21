@@ -1,14 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Edit, Trash2, Search, FileText } from 'lucide-react';
 import { mockServices } from '../../data/mockData';
+import { getServices, deleteService } from '../../services/servicesService';
 
 const ServicesManagement = () => {
-  const [services, setServices] = useState(mockServices);
+  const [services, setServices] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('ALL');
+  const [loading, setLoading] = useState(true);
 
   const categories = ['ALL', 'Certificate', 'Tax', 'License', 'Registration', 'Other'];
+
+  // Load services from Firebase
+  useEffect(() => {
+    const loadServices = async () => {
+      try {
+        setLoading(true);
+        const servicesData = await getServices();
+        setServices(servicesData);
+      } catch (error) {
+        console.error('Error loading services:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadServices();
+  }, []);
 
   const filteredServices = services.filter(service => {
     const matchesSearch = service.name.en.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -17,10 +36,16 @@ const ServicesManagement = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this service?')) {
-      setServices(services.filter(s => s.id !== id));
-      // TODO: Save to localStorage or API
+      try {
+        await deleteService(id);
+        setServices(services.filter(s => s.id !== id));
+        console.log('Service deleted successfully');
+      } catch (error) {
+        console.error('Error deleting service:', error);
+        alert('Failed to delete service. Please try again.');
+      }
     }
   };
 
@@ -34,6 +59,15 @@ const ServicesManagement = () => {
     };
     return colors[category] || 'bg-gray-100 text-gray-700';
   };
+
+  // Show loading spinner
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

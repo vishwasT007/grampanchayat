@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 import BilingualInput from '../../components/common/BilingualInput';
 import { mockServices } from '../../data/mockData';
+import { getService, createService, updateService } from '../../services/servicesService';
 
 const ServiceForm = () => {
   const navigate = useNavigate();
@@ -20,24 +21,38 @@ const ServiceForm = () => {
   });
 
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const categories = ['Certificate', 'Tax', 'License', 'Registration', 'Other'];
 
   useEffect(() => {
-    if (isEdit && id) {
-      const service = mockServices.find(s => s.id === parseInt(id));
-      if (service) {
-        setFormData({
-          name: service.name,
-          category: service.category,
-          description: service.description,
-          requiredDocuments: service.requiredDocuments,
-          fees: service.fees,
-          processingTime: service.processingTime,
-          howToApply: service.howToApply
-        });
+    const loadService = async () => {
+      if (isEdit && id) {
+        try {
+          setLoading(true);
+          const service = await getService(id);
+          if (service) {
+            setFormData({
+              name: service.name || { en: '', mr: '' },
+              category: service.category || 'Certificate',
+              description: service.description || { en: '', mr: '' },
+              requiredDocuments: service.requiredDocuments || { en: '', mr: '' },
+              fees: service.fees || '',
+              processingTime: service.processingTime || '',
+              howToApply: service.howToApply || { en: '', mr: '' }
+            });
+          }
+        } catch (error) {
+          console.error('Error loading service:', error);
+          alert('Failed to load service. Please try again.');
+        } finally {
+          setLoading(false);
+        }
       }
-    }
+    };
+
+    loadService();
   }, [isEdit, id]);
 
   const handleChange = (field, value) => {
@@ -68,7 +83,7 @@ const ServiceForm = () => {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     const newErrors = validate();
@@ -77,20 +92,44 @@ const ServiceForm = () => {
       return;
     }
 
-    const serviceData = {
-      id: isEdit ? parseInt(id) : Date.now(),
-      name: formData.name,
-      category: formData.category,
-      description: formData.description,
-      requiredDocuments: formData.requiredDocuments,
-      fees: formData.fees,
-      processingTime: formData.processingTime,
-      howToApply: formData.howToApply
-    };
+    setSaving(true);
 
-    console.log(isEdit ? 'Updating service:' : 'Creating service:', serviceData);
-    navigate('/admin/services');
+    try {
+      const serviceData = {
+        name: formData.name,
+        category: formData.category,
+        description: formData.description,
+        requiredDocuments: formData.requiredDocuments,
+        fees: formData.fees,
+        processingTime: formData.processingTime,
+        howToApply: formData.howToApply
+      };
+
+      if (isEdit) {
+        await updateService(id, serviceData);
+        console.log('Service updated successfully');
+      } else {
+        await createService(serviceData);
+        console.log('Service created successfully');
+      }
+
+      navigate('/admin/services');
+    } catch (error) {
+      console.error('Error saving service:', error);
+      alert('Failed to save service. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
+
+  // Show loading spinner while fetching data
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -277,10 +316,11 @@ const ServiceForm = () => {
           </button>
           <button
             type="submit"
-            className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all flex items-center gap-2"
+            disabled={saving}
+            className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all flex items-center gap-2 disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
-            {isEdit ? 'Update Service' : 'Save Service'}
+            {saving ? 'Saving...' : (isEdit ? 'Update Service' : 'Save Service')}
           </button>
         </div>
       </form>

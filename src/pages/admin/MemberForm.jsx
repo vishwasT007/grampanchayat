@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Upload } from 'lucide-react';
 import BilingualInput from '../../components/common/BilingualInput';
 import { mockMembers } from '../../data/mockData';
+import { getMember, createMember, updateMember } from '../../services/membersService';
 
 const MemberForm = () => {
   const navigate = useNavigate();
@@ -14,30 +15,45 @@ const MemberForm = () => {
     designation: { en: '', mr: '' },
     phone: '',
     type: 'MEMBER',
-    order: '',
+    position: 0,
     termStart: '',
     termEnd: '',
-    photoUrl: ''
+    photo: ''
   });
 
+  const [photoFile, setPhotoFile] = useState(null);
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (isEdit && id) {
-      const member = mockMembers.find(m => m.id === parseInt(id));
-      if (member) {
-        setFormData({
-          name: member.name,
-          designation: member.designation,
-          phone: member.phone,
-          type: member.type,
-          order: member.order,
-          termStart: member.termStart || '',
-          termEnd: member.termEnd || '',
-          photoUrl: member.photoUrl || ''
-        });
+    const loadMember = async () => {
+      if (isEdit && id) {
+        try {
+          setLoading(true);
+          const member = await getMember(id);
+          if (member) {
+            setFormData({
+              name: member.name || { en: '', mr: '' },
+              designation: member.designation || { en: '', mr: '' },
+              phone: member.phone || '',
+              type: member.type || 'MEMBER',
+              position: member.position || 0,
+              termStart: member.termStart || '',
+              termEnd: member.termEnd || '',
+              photo: member.photo || ''
+            });
+          }
+        } catch (error) {
+          console.error('Error loading member:', error);
+          alert('Failed to load member. Please try again.');
+        } finally {
+          setLoading(false);
+        }
       }
-    }
+    };
+
+    loadMember();
   }, [isEdit, id]);
 
   const handleChange = (field, value) => {
@@ -69,7 +85,7 @@ const MemberForm = () => {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     const newErrors = validate();
@@ -78,40 +94,58 @@ const MemberForm = () => {
       return;
     }
 
-    const memberData = {
-      name: formData.name,
-      designation: formData.designation,
-      phone: formData.phone,
-      type: formData.type,
-      order: parseInt(formData.order) || 0,
-      photoUrl: formData.photoUrl,
-      ...(formData.termStart && { termStart: formData.termStart }),
-      ...(formData.termEnd && { termEnd: formData.termEnd })
-    };
+    setSaving(true);
 
-    if (isEdit) {
-      console.log('Updating member:', id, memberData);
-      // TODO: Update in localStorage or API
-    } else {
-      console.log('Creating new member:', memberData);
-      // TODO: Save to localStorage or API
+    try {
+      const memberData = {
+        name: formData.name,
+        designation: formData.designation,
+        phone: formData.phone,
+        type: formData.type,
+        position: parseInt(formData.position) || 0,
+        photo: formData.photo,
+        ...(formData.termStart && { termStart: formData.termStart }),
+        ...(formData.termEnd && { termEnd: formData.termEnd })
+      };
+
+      if (isEdit) {
+        await updateMember(id, memberData, photoFile);
+        console.log('Member updated successfully');
+      } else {
+        await createMember(memberData, photoFile);
+        console.log('Member created successfully');
+      }
+
+      navigate('/admin/members');
+    } catch (error) {
+      console.error('Error saving member:', error);
+      alert('Failed to save member. Please try again.');
+    } finally {
+      setSaving(false);
     }
-
-    navigate('/admin/members');
   };
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // TODO: Upload to server and get URL
-      // For now, create a local preview
+      setPhotoFile(file);
+      // Create a local preview
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, photoUrl: reader.result }));
+        setFormData(prev => ({ ...prev, photo: reader.result }));
       };
       reader.readAsDataURL(file);
     }
   };
+
+  // Show loading spinner while fetching data
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -142,9 +176,9 @@ const MemberForm = () => {
               Photo
             </label>
             <div className="flex items-center gap-6">
-              {formData.photoUrl ? (
+              {formData.photo ? (
                 <img
-                  src={formData.photoUrl}
+                  src={formData.photo}
                   alt="Member photo"
                   className="w-32 h-32 object-cover rounded-lg border-2 border-gray-200"
                 />
@@ -240,15 +274,15 @@ const MemberForm = () => {
           {/* Term Dates */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label htmlFor="order" className="block text-sm font-semibold text-gray-700 mb-2">
+              <label htmlFor="position" className="block text-sm font-semibold text-gray-700 mb-2">
                 Display Order
               </label>
               <input
                 type="number"
-                id="order"
-                name="order"
-                value={formData.order}
-                onChange={handleChange}
+                id="position"
+                name="position"
+                value={formData.position}
+                onChange={handleSimpleChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 placeholder="1"
               />
@@ -295,10 +329,11 @@ const MemberForm = () => {
             </button>
             <button
               type="submit"
-              className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all"
+              disabled={saving}
+              className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
             >
               <Save size={20} />
-              {isEdit ? 'Update Member' : 'Add Member'}
+              {saving ? 'Saving...' : (isEdit ? 'Update Member' : 'Add Member')}
             </button>
           </div>
         </div>

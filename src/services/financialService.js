@@ -11,7 +11,7 @@ import {
   orderBy,
   Timestamp
 } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { db } from '../config/firebaseConfig';
 
 // Collection reference
 const COLLECTION_NAME = 'financialRecords';

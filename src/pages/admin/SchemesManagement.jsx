@@ -1,14 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Edit, Trash2, Search, Briefcase } from 'lucide-react';
 import { mockSchemes } from '../../data/mockData';
+import { getSchemes, deleteScheme } from '../../services/schemesService';
 
 const SchemesManagement = () => {
-  const [schemes, setSchemes] = useState(mockSchemes);
+  const [schemes, setSchemes] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('ALL');
+  const [loading, setLoading] = useState(true);
 
   const categories = ['ALL', 'CENTRAL', 'STATE', 'DISTRICT'];
+
+  // Load schemes from Firebase
+  useEffect(() => {
+    const loadSchemes = async () => {
+      try {
+        setLoading(true);
+        const schemesData = await getSchemes();
+        setSchemes(schemesData);
+      } catch (error) {
+        console.error('Error loading schemes:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSchemes();
+  }, []);
 
   const filteredSchemes = schemes.filter(scheme => {
     const matchesSearch = scheme.name.en.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -17,9 +36,16 @@ const SchemesManagement = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this scheme?')) {
-      setSchemes(schemes.filter(s => s.id !== id));
+      try {
+        await deleteScheme(id);
+        setSchemes(schemes.filter(s => s.id !== id));
+        console.log('Scheme deleted successfully');
+      } catch (error) {
+        console.error('Error deleting scheme:', error);
+        alert('Failed to delete scheme. Please try again.');
+      }
     }
   };
 
@@ -35,6 +61,15 @@ const SchemesManagement = () => {
   const getStatusColor = (status) => {
     return status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700';
   };
+
+  // Show loading spinner
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

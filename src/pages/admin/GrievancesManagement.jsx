@@ -1,53 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Edit2, Trash2, MessageSquare, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
+import { getGrievances, deleteGrievance } from '../../services/grievancesService';
 function GrievancesManagement() {
   const navigate = useNavigate();
-  
-  // Mock grievances data
-  const mockGrievances = [
-    {
-      id: 1,
-      title: { en: 'Water Supply Issue', mr: 'पाणीपुरवठा समस्या' },
-      description: { 
-        en: 'No water supply for the last 3 days in our area',
-        mr: 'आमच्या भागात गेल्या ३ दिवसांपासून पाणीपुरवठा नाही'
-      },
-      category: 'WATER',
-      status: 'PENDING',
-      priority: 'HIGH',
-      submittedBy: 'Ramesh Kumar',
-      phone: '+91 9876543210',
-      email: 'ramesh@example.com',
-      address: 'Village Road, Area 1',
-      submittedDate: '2024-11-15',
-      resolvedDate: null,
-      assignedTo: 'Water Department',
-      response: null
-    },
-    {
-      id: 2,
-      title: { en: 'Road Repair Needed', mr: 'रस्ता दुरुस्ती आवश्यक' },
-      description: { 
-        en: 'Main road has potholes causing accidents',
-        mr: 'मुख्य रस्त्यावर खड्डे आहेत ज्यामुळे अपघात होत आहेत'
-      },
-      category: 'ROAD',
-      status: 'IN_PROGRESS',
-      priority: 'MEDIUM',
-      submittedBy: 'Sunita Patil',
-      phone: '+91 9876543211',
-      email: 'sunita@example.com',
-      address: 'Main Road, Area 2',
-      submittedDate: '2024-11-10',
-      resolvedDate: null,
-      assignedTo: 'Public Works',
-      response: { en: 'Work started, will complete in 7 days', mr: 'काम सुरू झाले, ७ दिवसांत पूर्ण होईल' }
-    }
-  ];
+  const [grievances, setGrievances] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [grievances, setGrievances] = useState(mockGrievances);
+  useEffect(() => {
+    loadGrievances();
+  }, []);
+
+  const loadGrievances = async () => {
+    try {
+      const data = await getGrievances();
+      setGrievances(data);
+    } catch (error) {
+      console.error('Error loading grievances:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [filterCategory, setFilterCategory] = useState('ALL');

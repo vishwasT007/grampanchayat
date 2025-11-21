@@ -1,3 +1,6 @@
+// COPY THIS TO FIREBASE CONSOLE - Firestore Rules Tab
+// This will fix the "Missing or insufficient permissions" error
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -85,26 +88,8 @@ service cloud.firestore {
     }
     
     // ===========================
-    // User Interactions
+    // New Collections (Firebase Migration)
     // ===========================
-    
-    // Complaints - Anyone can create, Admin can manage
-    match /complaints/{complaintId} {
-      allow read: if true; // Public can view complaints
-      allow create: if true; // Anyone can submit
-      allow update: if isAdmin() || isOwner(resource.data.userId); // Admin or owner
-      allow delete: if isAdmin();
-    }
-    
-    // ===========================
-    // Settings & Configuration
-    // ===========================
-    
-    // Site Settings - Public read, Admin write
-    match /settings/{settingId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
     
     // Gallery Programs - Public read, Admin write
     match /galleryPrograms/{programId} {
@@ -136,29 +121,22 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
     
-    // Services - Public read, Admin write
-    match /services/{serviceId} {
+    // Settings - Public read, Admin write
+    match /settings/{settingId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }
     
-    // Members/Staff - Public read, Admin write
-    match /members/{memberId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
+    // ===========================
+    // User Interactions
+    // ===========================
     
-    // Schemes - Public read, Admin write
-    match /schemes/{schemeId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-    
-    // Grievances - Public create/read, Admin manage
-    match /grievances/{grievanceId} {
-      allow read: if true;
+    // Complaints - Anyone can create, Admin can manage
+    match /complaints/{complaintId} {
+      allow read: if true; // Public can view complaints
       allow create: if true; // Anyone can submit
-      allow update, delete: if isAdmin();
+      allow update: if isAdmin() || isOwner(resource.data.userId); // Admin or owner
+      allow delete: if isAdmin();
     }
     
     // ===========================
