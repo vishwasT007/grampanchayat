@@ -1,19 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { mockSchemes } from '../data/mockData';
+import { getSchemes } from '../services/schemesService';
 
 const Schemes = () => {
   const { t, getContent } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('All');
+  const [schemes, setSchemes] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadSchemes = async () => {
+      try {
+        setLoading(true);
+        const data = await getSchemes();
+        setSchemes(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Error loading schemes:', error);
+        setSchemes([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSchemes();
+  }, []);
 
   const categories = ['All', 'CENTRAL', 'STATE', 'LOCAL', 'OTHER'];
   const statuses = ['All', 'ACTIVE', 'CLOSED', 'UPCOMING'];
 
-  const filteredSchemes = mockSchemes.filter((scheme) => {
+  const filteredSchemes = schemes.filter((scheme) => {
     const matchesSearch = getContent(scheme.name)
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
@@ -23,6 +42,14 @@ const Schemes = () => {
       selectedStatus === 'All' || scheme.status === selectedStatus;
     return matchesSearch && matchesCategory && matchesStatus;
   });
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -82,43 +109,51 @@ const Schemes = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {filteredSchemes.map((scheme) => (
-              <div key={scheme.id} className="card p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-semibold text-gray-800 flex-1">
-                    {getContent(scheme.name)}
-                  </h3>
-                  <div className="flex gap-2 flex-shrink-0">
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">
-                      {scheme.category}
-                    </span>
-                    <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-                      scheme.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
-                      scheme.status === 'CLOSED' ? 'bg-red-100 text-red-700' :
-                      'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {scheme.status}
-                    </span>
-                  </div>
-                </div>
-                <p className="text-gray-600 mb-4 line-clamp-3">
-                  {getContent(scheme.description)}
-                </p>
-                <Link
-                  to={`/schemes/${scheme.id}`}
-                  className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-700 font-medium"
-                >
-                  {t('common.viewDetails')}
-                  <ChevronRight size={16} />
-                </Link>
-              </div>
-            ))}
-          </div>
-
-          {filteredSchemes.length === 0 && (
+          {schemes.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500 text-lg">
+                {t('common.language') === 'en' 
+                  ? 'No schemes have been added yet.' 
+                  : 'अद्याप कोणत्याही योजना जोडल्या गेल्या नाहीत.'}
+              </p>
+            </div>
+          ) : filteredSchemes.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg">{t('common.noResults')}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {filteredSchemes.map((scheme) => (
+                <div key={scheme.id} className="card p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-xl font-semibold text-gray-800 flex-1">
+                      {getContent(scheme.name)}
+                    </h3>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">
+                        {scheme.category}
+                      </span>
+                      <span className={`px-3 py-1 text-sm font-medium rounded-full ${
+                        scheme.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
+                        scheme.status === 'CLOSED' ? 'bg-red-100 text-red-700' :
+                        'bg-yellow-100 text-yellow-700'
+                      }`}>
+                        {scheme.status}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-gray-600 mb-4 line-clamp-3">
+                    {getContent(scheme.description)}
+                  </p>
+                  <Link
+                    to={`/schemes/${scheme.id}`}
+                    className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-700 font-medium"
+                  >
+                    {t('common.viewDetails')}
+                    <ChevronRight size={16} />
+                  </Link>
+                </div>
+              ))}
             </div>
           )}
         </div>
