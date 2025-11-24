@@ -20,8 +20,8 @@ const Home = () => {
   const { t, getContent } = useLanguage();
   const { settings: siteSettings, loading: settingsLoading } = useSiteSettings();
 
-  // Show loading state while data is being fetched
-  if (settingsLoading) {
+  // Show loading state while data is being fetched or if settings are null
+  if (settingsLoading || !siteSettings) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-blue-50 to-green-50">
         <div className="text-center">

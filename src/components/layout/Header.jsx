@@ -8,7 +8,7 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { language, toggleLanguage, t, getContent } = useLanguage();
-  const { settings: siteSettings } = useSiteSettings();
+  const { settings: siteSettings, loading } = useSiteSettings();
   const location = useLocation();
 
   // Handle scroll effect
@@ -36,6 +36,17 @@ const Header = () => {
   ];
 
   const isActive = (path) => location.pathname === path;
+
+  // Don't render header content until settings are loaded
+  if (loading || !siteSettings) {
+    return (
+      <header className="sticky top-0 z-50 bg-white shadow-md">
+        <div className="h-20 flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-orange-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className={`sticky top-0 z-50 transition-all duration-300 ${scrolled ? 'shadow-xl' : 'shadow-md'}`}>

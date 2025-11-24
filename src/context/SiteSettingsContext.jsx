@@ -5,7 +5,7 @@ import { getSettings, initializeSettings } from '../services/settingsService';
 const SiteSettingsContext = createContext();
 
 export const SiteSettingsProvider = ({ children }) => {
-  const [siteSettings, setSiteSettings] = useState(mockSiteSettings);
+  const [siteSettings, setSiteSettings] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
