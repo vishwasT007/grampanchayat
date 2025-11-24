@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { 
-  ChevronRight, 
   Users, 
   FileText, 
   Briefcase, 
@@ -10,32 +9,28 @@ import {
   Clock,
   IndianRupee,
   Download,
-  Calendar,
-  TrendingUp,
   Award,
-  Bell,
   ExternalLink,
   ArrowRight
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useSiteSettings } from '../context/SiteSettingsContext';
-import { 
-  mockNotices, 
-  mockPrograms,
-  mockMembers,
-  mockSchemes,
-  mockServices 
-} from '../data/mockData';
 
 const Home = () => {
   const { t, getContent } = useLanguage();
   const { settings: siteSettings, loading: settingsLoading } = useSiteSettings();
 
-  // Get latest 3 notices
-  const latestNotices = mockNotices.filter(n => n.showOnHome).slice(0, 3);
-  
-  // Get latest 3 programs
-  const recentPrograms = mockPrograms.filter(p => p.showOnHome).slice(0, 3);
+  // Show loading state while data is being fetched
+  if (settingsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-blue-50 to-green-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-orange-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="overflow-hidden">
@@ -278,79 +273,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Latest Notices Section - Enhanced Cards */}
-      <section className="py-12 md:py-16 lg:py-20 bg-gradient-to-br from-orange-50/50 via-blue-50/30 to-green-50/50">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 md:mb-12 gap-4">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-                <Bell className="text-orange-600" size={32} />
-                {t('home.latestNotices')}
-              </h2>
-              <div className="w-20 h-1 bg-gradient-to-r from-orange-600 to-green-600 rounded-full"></div>
-            </div>
-            <Link
-              to="/notices"
-              className="group inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 font-semibold transition-colors"
-            >
-              {t('home.viewAllNotices')}
-              <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
-            {latestNotices.map((notice, index) => {
-              const borderColors = ['border-orange-500', 'border-green-600', 'border-blue-600'];
-              const badgeColors = [
-                'bg-orange-100 text-orange-700 border-orange-200',
-                'bg-green-100 text-green-700 border-green-200',
-                'bg-blue-100 text-blue-700 border-blue-200'
-              ];
-              const iconBgColors = [
-                'bg-gradient-to-br from-orange-500 to-orange-600',
-                'bg-gradient-to-br from-green-600 to-green-700',
-                'bg-gradient-to-br from-blue-600 to-blue-700'
-              ];
-              
-              return (
-                <div 
-                  key={notice.id} 
-                  className={`group bg-white p-6 md:p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border-l-4 ${borderColors[index % 3]} transform hover:-translate-y-2`}
-                >
-                  <div className="flex items-start justify-between gap-3 mb-4">
-                    <span className={`px-3 py-1.5 ${badgeColors[index % 3]} text-xs font-bold rounded-full border uppercase tracking-wide`}>
-                      {notice.type}
-                    </span>
-                    <div className="flex items-center gap-1.5 text-sm text-gray-500">
-                      <Calendar size={16} />
-                      <span>{new Date(notice.startDate).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                  
-                  <div className={`w-12 h-12 ${iconBgColors[index % 3]} rounded-xl flex items-center justify-center mb-4 shadow-md group-hover:scale-110 transition-transform`}>
-                    <FileText className="text-white" size={24} />
-                  </div>
-                  
-                  <h3 className="font-bold text-xl mb-3 text-gray-900 line-clamp-2">
-                    {getContent(notice.title)}
-                  </h3>
-                  <p className="text-gray-600 text-sm leading-relaxed line-clamp-3 mb-4">
-                    {getContent(notice.description)}
-                  </p>
-                  <Link
-                    to={`/notices/${notice.id}`}
-                    className="inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 text-sm font-bold transition-colors group-hover:gap-3"
-                  >
-                    {t('common.readMore')}
-                    <ArrowRight size={16} />
-                  </Link>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
       {/* Highlights Section - Statistics */}
       <section className="py-12 md:py-16 lg:py-20 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 text-white relative overflow-hidden">
         {/* Background Pattern */}
@@ -374,14 +296,11 @@ const Home = () => {
               <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform shadow-xl">
                 <Users className="text-white" size={40} />
               </div>
-              <h3 className="text-2xl md:text-3xl font-bold mb-2 text-white">
-                {mockMembers.length}
-              </h3>
               <p className="text-xl font-semibold mb-2 text-orange-300">
                 {t('home.members')}
               </p>
               <p className="text-white/80 text-sm">
-                {t('common.active')} Representatives
+                Panchayat Representatives
               </p>
               <div className="mt-4 flex items-center justify-center gap-2 text-orange-300 text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
                 <span>View Details</span>
@@ -396,14 +315,11 @@ const Home = () => {
               <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-green-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform shadow-xl">
                 <Briefcase className="text-white" size={40} />
               </div>
-              <h3 className="text-2xl md:text-3xl font-bold mb-2 text-white">
-                {mockSchemes.length}
-              </h3>
               <p className="text-xl font-semibold mb-2 text-green-300">
                 {t('home.popularSchemes')}
               </p>
               <p className="text-white/80 text-sm">
-                {t('common.active')} Schemes
+                Government Schemes
               </p>
               <div className="mt-4 flex items-center justify-center gap-2 text-green-300 text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
                 <span>View Details</span>
@@ -418,14 +334,11 @@ const Home = () => {
               <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform shadow-xl">
                 <FileText className="text-white" size={40} />
               </div>
-              <h3 className="text-2xl md:text-3xl font-bold mb-2 text-white">
-                {mockServices.length}
-              </h3>
               <p className="text-xl font-semibold mb-2 text-blue-300">
                 {t('home.importantServices')}
               </p>
               <p className="text-white/80 text-sm">
-                {t('common.active')} Services
+                Panchayat Services
               </p>
               <div className="mt-4 flex items-center justify-center gap-2 text-blue-300 text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
                 <span>View Details</span>
@@ -435,72 +348,6 @@ const Home = () => {
           </div>
         </div>
       </section>
-
-      {/* Recent Programs Section - Enhanced Gallery */}
-      {recentPrograms.length > 0 && (
-        <section className="py-12 md:py-16 lg:py-20 bg-white">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 md:mb-12 gap-4">
-              <div>
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-                  <TrendingUp className="text-green-600" size={32} />
-                  {t('home.recentPrograms')}
-                </h2>
-                <div className="w-20 h-1 bg-gradient-to-r from-orange-600 to-green-600 rounded-full"></div>
-              </div>
-              <Link
-                to="/gallery"
-                className="group inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 font-semibold transition-colors"
-              >
-                {t('home.viewAllPrograms')}
-                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto">
-              {recentPrograms.map((program, index) => {
-                const accentColors = [
-                  'from-orange-500 to-orange-600',
-                  'from-green-600 to-green-700',
-                  'from-blue-600 to-blue-700'
-                ];
-                
-                return (
-                  <div 
-                    key={program.id} 
-                    className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2"
-                  >
-                    <div className="relative overflow-hidden h-56">
-                      <img
-                        src={program.photoUrl}
-                        alt={getContent(program.title)}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                      <div className={`absolute inset-0 bg-gradient-to-t ${accentColors[index % 3]} opacity-0 group-hover:opacity-20 transition-opacity duration-300`}></div>
-                      <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-1.5 text-sm font-semibold text-gray-700 shadow-lg">
-                        <Calendar size={14} />
-                        {new Date(program.date).toLocaleDateString()}
-                      </div>
-                    </div>
-                    <div className="p-6">
-                      <h3 className="font-bold text-xl mb-3 text-gray-900 line-clamp-2 group-hover:text-orange-600 transition-colors">
-                        {getContent(program.title)}
-                      </h3>
-                      <p className="text-gray-600 text-sm leading-relaxed line-clamp-3">
-                        {getContent(program.description)}
-                      </p>
-                      <div className="mt-4 flex items-center justify-between">
-                        <div className={`w-12 h-1 bg-gradient-to-r ${accentColors[index % 3]} rounded-full group-hover:w-20 transition-all duration-300`}></div>
-                        <ExternalLink size={18} className="text-gray-400 group-hover:text-orange-600 transition-colors" />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      )}
     </div>
   );
 };
