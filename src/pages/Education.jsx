@@ -6,7 +6,7 @@ import { getEducationContent } from '../services/pagesService';
 const Education = () => {
   const { t, language } = useLanguage();
   
-  // Load content from Firebase or use defaults
+  // Load content from Firebase
   const [pageContent, setPageContent] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -15,36 +15,14 @@ const Education = () => {
       try {
         setLoading(true);
         const content = await getEducationContent();
-        
-        if (content) {
-          setPageContent(content);
-        } else {
-          // Use default content if nothing in Firebase
-          setPageContent(getDefaultContent());
-        }
+        setPageContent(content);
       } catch (error) {
         console.error('Error loading education content:', error);
-        setPageContent(getDefaultContent());
+        setPageContent(null);
       } finally {
         setLoading(false);
       }
     };
-
-    const getDefaultContent = () => ({
-      description: {
-        en: 'Education is the foundation of our village development. We are committed to providing quality education to all children and promoting literacy among adults.',
-        mr: 'शिक्षण हा आमच्या गाव विकासाचा पाया आहे. आम्ही सर्व मुलांना दर्जेदार शिक्षण देण्यास वचनबद्ध आहोत.'
-      },
-      stats: {
-        literacyRate: '78%',
-        totalStudents: '500+',
-        totalTeachers: '30+',
-        schoolDropoutRate: '5%'
-      },
-      schools: [],
-      anganwadis: [],
-      programs: []
-    });
 
     loadContent();
   }, []);
@@ -57,7 +35,23 @@ const Education = () => {
     );
   }
 
-  if (!pageContent) return <div>Loading...</div>;
+  if (!pageContent) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-16">
+        <div className="container-custom text-center">
+          <School className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            {language === 'en' ? 'No Education Data Available' : 'शिक्षण डेटा उपलब्ध नाही'}
+          </h2>
+          <p className="text-gray-600">
+            {language === 'en' 
+              ? 'Education information has not been added yet.' 
+              : 'शिक्षण माहिती अद्याप जोडली गेली नाही.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
