@@ -45,7 +45,7 @@ const VillageStatisticsPublic = () => {
   const loadStatistics = async () => {
     try {
       const data = await getStatisticsSummaryByYear(selectedYear);
-      setSummary(data);
+      setSummary(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error loading statistics:', error);
       setSummary([]);
