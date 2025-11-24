@@ -1,13 +1,48 @@
+import { useState, useEffect } from 'react';
 import { Phone, MapPin, Clock } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { mockMembers, mockStaff, mockSiteSettings } from '../data/mockData';
+import { useSiteSettings } from '../context/SiteSettingsContext';
+import { getMembers } from '../services/membersService';
 
 const Panchayat = () => {
   const { t, getContent } = useLanguage();
+  const { settings: siteSettings, loading: settingsLoading } = useSiteSettings();
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const sarpanch = mockMembers.filter(m => m.type === 'SARPANCH');
-  const upsarpanch = mockMembers.filter(m => m.type === 'UPSARPANCH');
-  const members = mockMembers.filter(m => m.type === 'MEMBER');
+  useEffect(() => {
+    const loadMembers = async () => {
+      try {
+        setLoading(true);
+        const data = await getMembers();
+        setMembers(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Error loading members:', error);
+        setMembers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadMembers();
+  }, []);
+
+  const sarpanch = members.filter(m => m.type === 'SARPANCH');
+  const upsarpanch = members.filter(m => m.type === 'UPSARPANCH');
+  const panchayatMembers = members.filter(m => m.type === 'MEMBER');
+  const staff = members.filter(m => m.type === 'STAFF');
+
+  if (loading || settingsLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  if (!siteSettings) {
+    return null;
+  }
 
   return (
     <div>
@@ -43,7 +78,7 @@ const Panchayat = () => {
                     <div>
                       <h3 className="font-semibold text-lg mb-1">Address</h3>
                       <p className="text-gray-600">
-                        {getContent(mockSiteSettings.contact.address)}
+                        {getContent(siteSettings.contact.address)}
                       </p>
                     </div>
                   </div>
@@ -52,7 +87,7 @@ const Panchayat = () => {
                     <div>
                       <h3 className="font-semibold text-lg mb-1">Office Hours</h3>
                       <p className="text-gray-600">
-                        {getContent(mockSiteSettings.officeTimings)}
+                        {getContent(siteSettings.officeTimings)}
                       </p>
                     </div>
                   </div>
@@ -61,10 +96,10 @@ const Panchayat = () => {
                     <div>
                       <h3 className="font-semibold text-lg mb-1">Contact</h3>
                       <p className="text-gray-600">
-                        {mockSiteSettings.contact.phone}
+                        {siteSettings.contact.phone}
                       </p>
                       <p className="text-gray-600">
-                        {mockSiteSettings.contact.email}
+                        {siteSettings.contact.email}
                       </p>
                     </div>
                   </div>
@@ -158,14 +193,14 @@ const Panchayat = () => {
       )}
 
       {/* Members */}
-      {members.length > 0 && (
+      {panchayatMembers.length > 0 && (
         <section className="py-12 bg-gray-50">
           <div className="container-custom">
             <h2 className="text-3xl font-bold mb-8 text-gray-800 text-center">
               Gram Panchayat Members
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {members.map((member) => (
+              {panchayatMembers.map((member) => (
                 <div key={member.id} className="card p-6 text-center">
                   <img
                     src={member.photoUrl}
@@ -192,30 +227,30 @@ const Panchayat = () => {
       )}
 
       {/* Staff */}
-      {mockStaff.length > 0 && (
+      {staff.length > 0 && (
         <section className="py-12">
           <div className="container-custom">
             <h2 className="text-3xl font-bold mb-8 text-gray-800 text-center">
               Office Staff
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {mockStaff.map((staff) => (
-                <div key={staff.id} className="card p-6 text-center">
+              {staff.map((staffMember) => (
+                <div key={staffMember.id} className="card p-6 text-center">
                   <img
-                    src={staff.photoUrl}
-                    alt={getContent(staff.name)}
+                    src={staffMember.photoUrl}
+                    alt={getContent(staffMember.name)}
                     className="w-32 h-32 rounded-full object-cover mx-auto mb-4 border-4 border-gray-100"
                   />
                   <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                    {getContent(staff.name)}
+                    {getContent(staffMember.name)}
                   </h3>
                   <p className="text-primary-600 mb-3">
-                    {getContent(staff.designation)}
+                    {getContent(staffMember.designation)}
                   </p>
                   <div className="flex items-center gap-2 justify-center">
                     <Phone size={16} className="text-gray-500" />
-                    <a href={`tel:${staff.phone}`} className="text-gray-700 hover:text-primary-600 text-sm">
-                      {staff.phone}
+                    <a href={`tel:${staffMember.phone}`} className="text-gray-700 hover:text-primary-600 text-sm">
+                      {staffMember.phone}
                     </a>
                   </div>
                 </div>
