@@ -12,14 +12,17 @@ import {
   DollarSign,
   Bell,
   MessageSquare,
-  Download
+  Download,
+  Languages
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 const AdminLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
+  const { language, toggleLanguage } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -63,6 +66,19 @@ const AdminLayout = () => {
               <p className="text-sm font-semibold text-gray-800">{user?.name}</p>
               <p className="text-xs text-gray-500">{user?.role}</p>
             </div>
+            
+            {/* Language Toggle Button */}
+            <button
+              onClick={toggleLanguage}
+              className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+              title={language === 'en' ? 'Switch to Marathi' : 'Switch to English'}
+            >
+              <Languages size={18} />
+              <span className="hidden sm:inline text-sm">
+                {language === 'en' ? 'EN' : 'मर'}
+              </span>
+            </button>
+            
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
