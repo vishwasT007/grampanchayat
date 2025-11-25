@@ -5,7 +5,7 @@ import { useSiteSettings } from '../context/SiteSettingsContext';
 
 const Contact = () => {
   const { t, getContent } = useLanguage();
-  const { siteSettings } = useSiteSettings();
+  const { settings: siteSettings } = useSiteSettings();
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
