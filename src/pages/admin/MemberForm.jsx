@@ -81,6 +81,11 @@ const MemberForm = () => {
       newErrors.phone = 'Invalid phone number';
     }
     if (!formData.type) newErrors.type = 'Member type is required';
+    
+    // Date validation
+    if (formData.termStart && formData.termEnd && formData.termEnd < formData.termStart) {
+      newErrors.termEnd = 'End date must be after start date';
+    }
 
     return newErrors;
   };
@@ -292,29 +297,37 @@ const MemberForm = () => {
             <div>
               <label htmlFor="termStart" className="block text-sm font-semibold text-gray-700 mb-2">
                 Term Start Date
+                <span className="text-xs text-gray-500 ml-2">(Optional)</span>
               </label>
               <input
                 type="date"
                 id="termStart"
                 name="termStart"
                 value={formData.termStart}
-                onChange={handleChange}
+                onChange={handleSimpleChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                placeholder="YYYY-MM-DD"
               />
             </div>
 
             <div>
               <label htmlFor="termEnd" className="block text-sm font-semibold text-gray-700 mb-2">
                 Term End Date
+                <span className="text-xs text-gray-500 ml-2">(Optional)</span>
               </label>
               <input
                 type="date"
                 id="termEnd"
                 name="termEnd"
                 value={formData.termEnd}
-                onChange={handleChange}
+                onChange={handleSimpleChange}
+                min={formData.termStart}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                placeholder="YYYY-MM-DD"
               />
+              {formData.termStart && formData.termEnd && formData.termEnd < formData.termStart && (
+                <p className="text-red-500 text-xs mt-1">End date must be after start date</p>
+              )}
             </div>
           </div>
 
