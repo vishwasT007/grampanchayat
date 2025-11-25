@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Users, 
@@ -14,65 +15,125 @@ import {
   Edit3
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
-import { 
-  mockMembers, 
-  mockServices, 
-  mockSchemes, 
-  mockNotices, 
-  mockPrograms,
-  mockForms 
-} from '../../data/mockData';
+import { getMembers } from '../../services/membersService';
+import { getServices } from '../../services/servicesService';
+import { getSchemes } from '../../services/schemesService';
+import { getAllNotices, getActiveNotices } from '../../services/noticesService';
+import { getAllPrograms } from '../../services/galleryService';
+import { getAllForms } from '../../services/formsService';
 
 const AdminDashboard = () => {
   const { t } = useLanguage();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    members: 0,
+    services: 0,
+    schemes: 0,
+    activeNotices: 0,
+    programs: 0,
+    forms: 0
+  });
+  const [recentNotices, setRecentNotices] = useState([]);
+  const [recentPrograms, setRecentPrograms] = useState([]);
 
-  const stats = [
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      // Load all data in parallel
+      const [
+        membersData,
+        servicesData,
+        schemesData,
+        allNoticesData,
+        programsData,
+        formsData
+      ] = await Promise.all([
+        getMembers(),
+        getServices(),
+        getSchemes(),
+        getAllNotices(),
+        getAllPrograms(),
+        getAllForms()
+      ]);
+
+      // Update stats
+      setStats({
+        members: membersData?.length || 0,
+        services: servicesData?.length || 0,
+        schemes: schemesData?.length || 0,
+        activeNotices: allNoticesData?.filter(n => n.status === 'ACTIVE')?.length || 0,
+        programs: programsData?.length || 0,
+        forms: formsData?.length || 0
+      });
+
+      // Set recent items (last 3)
+      setRecentNotices(allNoticesData?.slice(0, 3) || []);
+      setRecentPrograms(programsData?.slice(0, 3) || []);
+      
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statsCards = [
     {
       title: 'Total Members',
-      count: mockMembers.length,
+      count: stats.members,
       icon: Users,
       color: 'from-orange-500 to-orange-600',
       link: '/admin/members'
     },
     {
       title: 'Services',
-      count: mockServices.length,
+      count: stats.services,
       icon: FileText,
       color: 'from-green-600 to-green-700',
       link: '/admin/services'
     },
     {
       title: 'Schemes',
-      count: mockSchemes.length,
+      count: stats.schemes,
       icon: Briefcase,
       color: 'from-blue-800 to-blue-900',
       link: '/admin/schemes'
     },
     {
       title: 'Active Notices',
-      count: mockNotices.filter(n => n.status === 'ACTIVE').length,
+      count: stats.activeNotices,
       icon: Bell,
       color: 'from-purple-500 to-purple-600',
       link: '/admin/notices'
     },
     {
       title: 'Programs',
-      count: mockPrograms.length,
+      count: stats.programs,
       icon: Image,
       color: 'from-pink-500 to-pink-600',
       link: '/admin/gallery'
     },
     {
       title: 'Forms',
-      count: mockForms.length,
+      count: stats.forms,
       icon: Download,
       color: 'from-indigo-500 to-indigo-600',
       link: '/admin/forms'
     }
   ];
 
-  const recentNotices = mockNotices.slice(0, 3);
-  const recentPrograms = mockPrograms.slice(0, 3);
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -93,7 +154,7 @@ const AdminDashboard = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {stats.map((stat, index) => (
+        {statsCards.map((stat, index) => (
           <Link
             key={index}
             to={stat.link}
