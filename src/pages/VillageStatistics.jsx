@@ -45,7 +45,32 @@ const VillageStatisticsPublic = () => {
   const loadStatistics = async () => {
     try {
       const data = await getStatisticsSummaryByYear(selectedYear);
-      setSummary(Array.isArray(data) ? data : []);
+      console.log('Raw data from Firebase:', data);
+      
+      // Transform the data into array format for display
+      if (data && data.villages && Array.isArray(data.villages)) {
+        const summaryArray = data.villages.map(village => {
+          // Find corresponding data for this village
+          const villageDemographics = data.demographics?.find(d => d.villageId === village.id) || {};
+          const villageBreakdowns = data.breakdowns?.filter(b => b.villageId === village.id) || [];
+          const villageGroups = data.groups?.find(g => g.villageId === village.id) || {};
+          const villageInfra = data.infrastructure?.find(i => i.villageId === village.id) || {};
+          
+          return {
+            village,
+            demographics: villageDemographics,
+            breakdowns: villageBreakdowns,
+            groups: villageGroups,
+            infrastructure: villageInfra
+          };
+        });
+        
+        console.log('Transformed summary array:', summaryArray);
+        setSummary(summaryArray);
+      } else {
+        console.log('No villages found in data');
+        setSummary([]);
+      }
     } catch (error) {
       console.error('Error loading statistics:', error);
       setSummary([]);
