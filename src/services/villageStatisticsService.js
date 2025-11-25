@@ -52,8 +52,16 @@ export async function getAllVillages() {
         ...restData 
       };
     });
+    
+    // Sort villages by createdAt timestamp (oldest first)
+    villages.sort((a, b) => {
+      const timeA = a.createdAt?.toMillis?.() || 0;
+      const timeB = b.createdAt?.toMillis?.() || 0;
+      return timeA - timeB;
+    });
+    
     console.log('Fetched from server:', villages.length, 'villages');
-    console.log('Village IDs:', villages.map(v => ({ docId: v.id, name: v.nameEn })));
+    console.log('Village IDs:', villages.map(v => ({ docId: v.id, name: v.nameEn, createdAt: v.createdAt })));
     return villages;
   } catch (error) {
     console.error('Error getting villages:', error);
