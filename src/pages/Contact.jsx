@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Phone, Mail, MapPin, Send, Sparkles, MessageSquare, User, Clock, CheckCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { mockSiteSettings } from '../data/mockData';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 
 const Contact = () => {
   const { t, getContent } = useLanguage();
+  const { siteSettings } = useSiteSettings();
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -127,10 +128,10 @@ const Contact = () => {
                       <div className="flex-1">
                         <h3 className="font-bold text-xl text-blue-900 mb-2">Phone</h3>
                         <a
-                          href={`tel:${mockSiteSettings.contact.phone}`}
+                          href={`tel:${siteSettings?.contact?.phone || ''}`}
                           className="text-orange-600 hover:text-orange-700 text-lg font-semibold flex items-center gap-2 group-hover:gap-3 transition-all"
                         >
-                          {mockSiteSettings.contact.phone}
+                          {siteSettings?.contact?.phone || 'Not available'}
                           <Sparkles size={18} className="group-hover:animate-spin" />
                         </a>
                         <p className="text-sm text-gray-600 mt-2">
@@ -152,10 +153,10 @@ const Contact = () => {
                       <div className="flex-1">
                         <h3 className="font-bold text-xl text-blue-900 mb-2">Email</h3>
                         <a
-                          href={`mailto:${mockSiteSettings.contact.email}`}
+                          href={`mailto:${siteSettings?.contact?.email || ''}`}
                           className="text-green-600 hover:text-green-700 text-lg font-semibold flex items-center gap-2 group-hover:gap-3 transition-all break-all"
                         >
-                          {mockSiteSettings.contact.email}
+                          {siteSettings?.contact?.email || 'Not available'}
                           <Sparkles size={18} className="group-hover:animate-spin flex-shrink-0" />
                         </a>
                         <p className="text-sm text-gray-600 mt-2">
@@ -177,11 +178,11 @@ const Contact = () => {
                       <div className="flex-1">
                         <h3 className="font-bold text-xl text-blue-900 mb-2">Address</h3>
                         <p className="text-gray-700 leading-relaxed">
-                          {getContent(mockSiteSettings.contact.address)}
+                          {getContent(siteSettings?.contact?.address) || 'Not available'}
                         </p>
                         <p className="text-sm text-gray-600 mt-2 flex items-center gap-2">
                           <Clock size={16} />
-                          Mon - Fri: 10:00 AM - 5:00 PM
+                          {getContent(siteSettings?.officeTimings) || 'Mon - Fri: 10:00 AM - 5:00 PM'}
                         </p>
                       </div>
                     </div>
@@ -189,15 +190,32 @@ const Contact = () => {
                 </div>
               </div>
 
-              {/* Premium Map Placeholder */}
-              <div className="mt-8 h-64 bg-gradient-to-br from-orange-100 to-green-100 rounded-2xl shadow-xl overflow-hidden border-2 border-dashed border-orange-300 flex items-center justify-center group hover:border-solid transition-all">
-                <div className="text-center">
-                  <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full mb-3 shadow-lg">
-                    <MapPin size={32} className="text-orange-600" />
+              {/* Google Maps Embed or Placeholder */}
+              <div className="mt-8">
+                {siteSettings?.googleMapsLink ? (
+                  <div className="h-80 bg-white rounded-2xl shadow-xl overflow-hidden border-2 border-orange-300">
+                    <iframe
+                      src={siteSettings.googleMapsLink}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen=""
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title="Gram Panchayat Location"
+                    ></iframe>
                   </div>
-                  <p className="text-gray-600 font-semibold">Map will be embedded here</p>
-                  <p className="text-sm text-gray-500 mt-1">Interactive location map</p>
-                </div>
+                ) : (
+                  <div className="h-64 bg-gradient-to-br from-orange-100 to-green-100 rounded-2xl shadow-xl overflow-hidden border-2 border-dashed border-orange-300 flex items-center justify-center group hover:border-solid transition-all">
+                    <div className="text-center">
+                      <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full mb-3 shadow-lg">
+                        <MapPin size={32} className="text-orange-600" />
+                      </div>
+                      <p className="text-gray-600 font-semibold">Map will be embedded here</p>
+                      <p className="text-sm text-gray-500 mt-1">Interactive location map</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

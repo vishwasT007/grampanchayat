@@ -18,7 +18,8 @@ function SiteSettings() {
     facebook: '',
     twitter: '',
     instagram: '',
-    officePhoto: ''
+    officePhoto: '',
+    googleMapsLink: ''
   });
 
   const [errors, setErrors] = useState({});
@@ -46,7 +47,8 @@ function SiteSettings() {
             facebook: settings.socialMedia?.facebook || '',
             twitter: settings.socialMedia?.twitter || '',
             instagram: settings.socialMedia?.instagram || '',
-            officePhoto: settings.officePhoto || ''
+            officePhoto: settings.officePhoto || '',
+            googleMapsLink: settings.googleMapsLink || ''
           });
           setOfficePhotoPreview(settings.officePhoto || '');
         } else {
@@ -61,7 +63,8 @@ function SiteSettings() {
             facebook: mockSiteSettings.socialMedia.facebook,
             twitter: mockSiteSettings.socialMedia.twitter,
             instagram: mockSiteSettings.socialMedia.instagram,
-            officePhoto: ''
+            officePhoto: '',
+            googleMapsLink: ''
           });
         }
       } catch (error) {
@@ -190,7 +193,8 @@ function SiteSettings() {
           twitter: formData.twitter,
           instagram: formData.instagram
         },
-        officePhoto: officePhotoURL
+        officePhoto: officePhotoURL,
+        googleMapsLink: formData.googleMapsLink
       };
 
       // Save to Firebase
@@ -353,6 +357,26 @@ function SiteSettings() {
             {errors.officeTimings && (
               <p className="text-red-500 text-sm mt-1">{errors.officeTimings}</p>
             )}
+
+            {/* Google Maps Link */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="flex items-center gap-2">
+                  <MapPin size={16} className="text-primary-600" />
+                  Google Maps Embed Link
+                </div>
+              </label>
+              <input
+                type="url"
+                value={formData.googleMapsLink}
+                onChange={(e) => handleChange('googleMapsLink', e.target.value)}
+                placeholder="https://www.google.com/maps/embed?pb=..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                To get the embed link: Go to Google Maps → Search your location → Click "Share" → Click "Embed a map" → Copy the iframe src URL
+              </p>
+            </div>
           </div>
         </div>
 
