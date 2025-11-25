@@ -95,7 +95,7 @@ const Panchayat = () => {
                 <div className="relative h-80 lg:h-auto">
                   <div className="absolute inset-0 bg-gradient-to-br from-orange-600/20 to-green-600/20"></div>
                   <img
-                    src="https://via.placeholder.com/600x400"
+                    src={siteSettings.officePhoto || "https://via.placeholder.com/600x400"}
                     alt="Gram Panchayat Office"
                     className="w-full h-full object-cover"
                   />

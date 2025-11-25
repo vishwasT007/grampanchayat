@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Save, Building2, Phone, Mail, MapPin, Clock, Facebook, Twitter, Instagram } from 'lucide-react';
+import { Save, Building2, Phone, Mail, MapPin, Clock, Facebook, Twitter, Instagram, Image as ImageIcon, X } from 'lucide-react';
 import BilingualInput from '../../components/common/BilingualInput';
 import { mockSiteSettings } from '../../data/mockData';
 import { getSettings, updateSettings } from '../../services/settingsService';
+import { uploadImage, deleteImage } from '../../services/storageService';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
 
 function SiteSettings() {
@@ -16,13 +17,16 @@ function SiteSettings() {
     officeTimings: { en: '', mr: '' },
     facebook: '',
     twitter: '',
-    instagram: ''
+    instagram: '',
+    officePhoto: ''
   });
 
   const [errors, setErrors] = useState({});
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [officePhotoFile, setOfficePhotoFile] = useState(null);
+  const [officePhotoPreview, setOfficePhotoPreview] = useState('');
 
   // Load settings from Firebase on mount
   useEffect(() => {
@@ -41,8 +45,10 @@ function SiteSettings() {
             officeTimings: settings.officeTimings || { en: '', mr: '' },
             facebook: settings.socialMedia?.facebook || '',
             twitter: settings.socialMedia?.twitter || '',
-            instagram: settings.socialMedia?.instagram || ''
+            instagram: settings.socialMedia?.instagram || '',
+            officePhoto: settings.officePhoto || ''
           });
+          setOfficePhotoPreview(settings.officePhoto || '');
         } else {
           // Initialize with mock data
           setFormData({
@@ -54,7 +60,8 @@ function SiteSettings() {
             officeTimings: mockSiteSettings.officeTimings,
             facebook: mockSiteSettings.socialMedia.facebook,
             twitter: mockSiteSettings.socialMedia.twitter,
-            instagram: mockSiteSettings.socialMedia.instagram
+            instagram: mockSiteSettings.socialMedia.instagram,
+            officePhoto: ''
           });
         }
       } catch (error) {
@@ -92,6 +99,25 @@ function SiteSettings() {
         return newErrors;
       });
     }
+  };
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setOfficePhotoFile(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setOfficePhotoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setOfficePhotoFile(null);
+    setOfficePhotoPreview('');
+    setFormData(prev => ({ ...prev, officePhoto: '' }));
   };
 
   const validateForm = () => {
@@ -134,6 +160,22 @@ function SiteSettings() {
     setSaving(true);
 
     try {
+      let officePhotoURL = formData.officePhoto;
+
+      // Upload new photo if selected
+      if (officePhotoFile) {
+        // Delete old photo if exists
+        if (formData.officePhoto) {
+          try {
+            await deleteImage(formData.officePhoto);
+          } catch (error) {
+            console.warn('Failed to delete old office photo:', error);
+          }
+        }
+        // Upload new photo
+        officePhotoURL = await uploadImage(officePhotoFile, 'site');
+      }
+
       const settingsData = {
         panchayatName: formData.panchayatName,
         tagline: formData.tagline,
@@ -147,7 +189,8 @@ function SiteSettings() {
           facebook: formData.facebook,
           twitter: formData.twitter,
           instagram: formData.instagram
-        }
+        },
+        officePhoto: officePhotoURL
       };
 
       // Save to Firebase
@@ -310,6 +353,62 @@ function SiteSettings() {
             {errors.officeTimings && (
               <p className="text-red-500 text-sm mt-1">{errors.officeTimings}</p>
             )}
+          </div>
+        </div>
+
+        {/* Office Photo */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <ImageIcon className="text-primary-600" size={24} />
+            <h2 className="text-xl font-semibold text-gray-900">
+              Office Photo
+            </h2>
+          </div>
+
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Upload a photo of your Gram Panchayat office. This will be displayed on the Panchayat page.
+            </p>
+
+            {/* Photo Preview */}
+            {officePhotoPreview && (
+              <div className="relative inline-block">
+                <img
+                  src={officePhotoPreview}
+                  alt="Office"
+                  className="w-full max-w-md h-64 object-cover rounded-lg border-2 border-gray-300"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemovePhoto}
+                  className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            )}
+
+            {/* Photo Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {officePhotoPreview ? 'Change Photo' : 'Upload Photo'}
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                className="block w-full text-sm text-gray-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-lg file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-primary-50 file:text-primary-700
+                  hover:file:bg-primary-100
+                  cursor-pointer"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Recommended: 1200x800px or larger, JPG or PNG format
+              </p>
+            </div>
           </div>
         </div>
 
