@@ -27,12 +27,15 @@ const DemographicsTab = ({ selectedYear }) => {
       const dataMap = {};
       allVillages.forEach(village => {
         const existing = yearDemographics.find(d => d.villageId === village.id);
+        const male = existing?.malePopulation || 0;
+        const female = existing?.femalePopulation || 0;
+        
         dataMap[village.id] = {
           villageId: village.id,
           year: selectedYear,
-          totalPopulation: existing?.totalPopulation || 0,
-          malePopulation: existing?.malePopulation || 0,
-          femalePopulation: existing?.femalePopulation || 0,
+          totalPopulation: male + female, // Auto-calculate total
+          malePopulation: male,
+          femalePopulation: female,
           source: existing?.source || ''
         };
       });
@@ -48,13 +51,24 @@ const DemographicsTab = ({ selectedYear }) => {
   };
 
   const handleChange = (villageId, field, value) => {
-    setDemographicsData(prev => ({
-      ...prev,
-      [villageId]: {
-        ...prev[villageId],
-        [field]: field === 'source' ? value : parseInt(value) || 0
+    setDemographicsData(prev => {
+      const updated = {
+        ...prev,
+        [villageId]: {
+          ...prev[villageId],
+          [field]: field === 'source' ? value : parseInt(value) || 0
+        }
+      };
+      
+      // Auto-calculate total population when male or female changes
+      if (field === 'malePopulation' || field === 'femalePopulation') {
+        const male = field === 'malePopulation' ? (parseInt(value) || 0) : updated[villageId].malePopulation;
+        const female = field === 'femalePopulation' ? (parseInt(value) || 0) : updated[villageId].femalePopulation;
+        updated[villageId].totalPopulation = male + female;
       }
-    }));
+      
+      return updated;
+    });
   };
 
   const handleSave = async () => {
@@ -135,7 +149,10 @@ const DemographicsTab = ({ selectedYear }) => {
                   Village Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Total Population
+                  <div className="flex items-center gap-1">
+                    Total Population
+                    <span className="text-xs normal-case text-gray-500">(Auto)</span>
+                  </div>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                   Male Population
@@ -162,8 +179,9 @@ const DemographicsTab = ({ selectedYear }) => {
                       type="number"
                       min="0"
                       value={demographicsData[village.id]?.totalPopulation || 0}
-                      onChange={(e) => handleChange(village.id, 'totalPopulation', e.target.value)}
-                      className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      readOnly
+                      className="w-32 px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700 font-semibold cursor-not-allowed"
+                      title="Auto-calculated: Male + Female"
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
