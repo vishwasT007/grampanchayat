@@ -16,7 +16,8 @@ import {
   where,
   orderBy,
   serverTimestamp,
-  writeBatch
+  writeBatch,
+  getDocsFromServer  // Force server fetch, bypass cache
 } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
 
@@ -39,8 +40,12 @@ const COLLECTIONS = {
  */
 export async function getAllVillages() {
   try {
-    const querySnapshot = await getDocs(collection(db, COLLECTIONS.VILLAGES));
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log('Fetching villages from Firebase server (bypassing cache)...');
+    // Use getDocsFromServer to force fresh data from server, not cache
+    const querySnapshot = await getDocsFromServer(collection(db, COLLECTIONS.VILLAGES));
+    const villages = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log('Fetched from server:', villages.length, 'villages');
+    return villages;
   } catch (error) {
     console.error('Error getting villages:', error);
     throw error;
@@ -103,10 +108,16 @@ export async function updateVillage(villageId, updates) {
  */
 export async function deleteVillage(villageId) {
   try {
-    await deleteDoc(doc(db, COLLECTIONS.VILLAGES, villageId));
+    console.log('Attempting to delete village from Firebase, ID:', villageId);
+    const villageRef = doc(db, COLLECTIONS.VILLAGES, villageId);
+    console.log('Village reference created:', villageRef.path);
+    await deleteDoc(villageRef);
+    console.log('Firebase deleteDoc completed successfully for:', villageId);
     return true;
   } catch (error) {
-    console.error('Error deleting village:', error);
+    console.error('Error deleting village from Firebase:', error);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
     throw error;
   }
 }

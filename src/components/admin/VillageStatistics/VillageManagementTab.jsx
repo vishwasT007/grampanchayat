@@ -36,7 +36,8 @@ const VillageManagementTab = () => {
     try {
       console.log('Loading villages from Firebase...');
       const allVillages = await getAllVillages();
-      console.log('Loaded villages:', allVillages.length, allVillages);
+      console.log('Loaded villages count:', allVillages.length);
+      console.log('Villages data:', JSON.stringify(allVillages, null, 2));
       setVillages(allVillages);
     } catch (error) {
       console.error('Error loading villages:', error);
