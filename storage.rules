@@ -77,6 +77,16 @@ service firebase.storage {
     }
     
     // ===========================
+    // Member Photos
+    // ===========================
+    
+    match /members/{fileName} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isImage() && isUnder10MB();
+      allow delete: if isAuthenticated();
+    }
+    
+    // ===========================
     // User Uploads (Complaint attachments, etc.)
     // ===========================
     

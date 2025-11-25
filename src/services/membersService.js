@@ -99,7 +99,7 @@ export const createMember = async (memberData, photoFile = null) => {
     
     // Upload photo if provided
     if (photoFile) {
-      photoURL = await uploadImage(photoFile, `members/${Date.now()}_${photoFile.name}`);
+      photoURL = await uploadImage(photoFile, 'members');
     }
     
     const membersRef = collection(db, COLLECTION_NAME);
@@ -137,7 +137,7 @@ export const updateMember = async (memberId, memberData, photoFile = null) => {
         }
       }
       
-      photoURL = await uploadImage(photoFile, `members/${Date.now()}_${photoFile.name}`);
+      photoURL = await uploadImage(photoFile, 'members');
     }
     
     const docRef = doc(db, COLLECTION_NAME, memberId);
