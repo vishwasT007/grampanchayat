@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Phone, MapPin, Clock } from 'lucide-react';
+import { Phone, MapPin, Clock, UserCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { getMembers } from '../services/membersService';
@@ -120,11 +120,17 @@ const Panchayat = () => {
             <div className="max-w-2xl mx-auto">
               <div className="card p-8">
                 <div className="flex flex-col md:flex-row gap-8 items-center">
-                  <img
-                    src={sarpanch[0].photoUrl}
-                    alt={getContent(sarpanch[0].name)}
-                    className="w-48 h-48 rounded-full object-cover border-4 border-primary-200"
-                  />
+                  <div className="w-48 h-48 rounded-full border-4 border-primary-200 overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    {sarpanch[0].photo ? (
+                      <img
+                        src={sarpanch[0].photo}
+                        alt={getContent(sarpanch[0].name)}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <UserCircle size={120} className="text-gray-400" />
+                    )}
+                  </div>
                   <div className="text-center md:text-left">
                     <h3 className="text-2xl font-bold text-gray-800 mb-2">
                       {getContent(sarpanch[0].name)}
@@ -161,11 +167,17 @@ const Panchayat = () => {
             <div className="max-w-2xl mx-auto">
               <div className="card p-8">
                 <div className="flex flex-col md:flex-row gap-8 items-center">
-                  <img
-                    src={upsarpanch[0].photoUrl}
-                    alt={getContent(upsarpanch[0].name)}
-                    className="w-48 h-48 rounded-full object-cover border-4 border-primary-200"
-                  />
+                  <div className="w-48 h-48 rounded-full border-4 border-primary-200 overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    {upsarpanch[0].photo ? (
+                      <img
+                        src={upsarpanch[0].photo}
+                        alt={getContent(upsarpanch[0].name)}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <UserCircle size={120} className="text-gray-400" />
+                    )}
+                  </div>
                   <div className="text-center md:text-left">
                     <h3 className="text-2xl font-bold text-gray-800 mb-2">
                       {getContent(upsarpanch[0].name)}
@@ -202,11 +214,17 @@ const Panchayat = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {panchayatMembers.map((member) => (
                 <div key={member.id} className="card p-6 text-center">
-                  <img
-                    src={member.photo}
-                    alt={getContent(member.name)}
-                    className="w-32 h-32 rounded-full object-cover mx-auto mb-4 border-4 border-gray-100"
-                  />
+                  <div className="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-gray-100 overflow-hidden bg-gray-100 flex items-center justify-center">
+                    {member.photo ? (
+                      <img
+                        src={member.photo}
+                        alt={getContent(member.name)}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <UserCircle size={80} className="text-gray-400" />
+                    )}
+                  </div>
                   <h3 className="text-xl font-semibold text-gray-800 mb-2">
                     {getContent(member.name)}
                   </h3>
@@ -236,11 +254,17 @@ const Panchayat = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {staff.map((staffMember) => (
                 <div key={staffMember.id} className="card p-6 text-center">
-                  <img
-                    src={staffMember.photo}
-                    alt={getContent(staffMember.name)}
-                    className="w-32 h-32 rounded-full object-cover mx-auto mb-4 border-4 border-gray-100"
-                  />
+                  <div className="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-gray-100 overflow-hidden bg-gray-100 flex items-center justify-center">
+                    {staffMember.photo ? (
+                      <img
+                        src={staffMember.photo}
+                        alt={getContent(staffMember.name)}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <UserCircle size={80} className="text-gray-400" />
+                    )}
+                  </div>
                   <h3 className="text-xl font-semibold text-gray-800 mb-2">
                     {getContent(staffMember.name)}
                   </h3>
