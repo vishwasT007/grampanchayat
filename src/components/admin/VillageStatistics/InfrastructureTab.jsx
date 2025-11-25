@@ -91,6 +91,7 @@ const InfrastructureTab = ({ selectedYear }) => {
   const getTotalInfrastructure = (villageId) => {
     const data = infrastructureData[villageId];
     if (!data) return 0;
+    // For now, sum the old fields that exist in the UI
     return (data.wellsCount || 0) + (data.borewellsCount || 0) + 
            (data.handpumpsCount || 0) + (data.tapConnectionsCount || 0);
   };
