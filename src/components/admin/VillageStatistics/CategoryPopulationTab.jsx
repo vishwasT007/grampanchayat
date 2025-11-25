@@ -86,7 +86,9 @@ const CategoryPopulationTab = ({ selectedYear }) => {
         });
       });
 
+      console.log('Saving category-wise data:', dataArray.length, 'records');
       await bulkUpsertPopulationBreakdowns(dataArray);
+      console.log('Category-wise data saved successfully');
 
       // 🔄 AUTO-SYNC: Update Demographics based on category totals
       const demographicsArray = [];
@@ -111,13 +113,16 @@ const CategoryPopulationTab = ({ selectedYear }) => {
       });
 
       // Update demographics automatically
-      bulkUpsertDemographics(demographicsArray);
+      console.log('Auto-updating demographics from category data:', demographicsArray.length, 'villages');
+      await bulkUpsertDemographics(demographicsArray);
+      console.log('Demographics auto-updated successfully');
 
       setMessage({ 
         type: 'success', 
         text: `✅ Category-wise data saved! Demographics auto-updated for ${selectedYear}.` 
       });
     } catch (error) {
+      console.error('Error saving category-wise data:', error);
       setMessage({ type: 'error', text: error.message || 'Failed to save data. Please try again.' });
     } finally {
       setSaving(false);

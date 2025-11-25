@@ -230,30 +230,39 @@ export async function upsertDemographics(demographicsData) {
  */
 export async function bulkUpsertDemographics(demographicsArray) {
   try {
+    console.log('bulkUpsertDemographics: Starting batch operation for', demographicsArray.length, 'records');
     const batch = writeBatch(db);
+    let updateCount = 0;
+    let createCount = 0;
     
     for (const data of demographicsArray) {
       const existing = await getDemographicsByVillageAndYear(data.villageId, data.year);
       
       if (existing) {
         // Update existing
+        console.log(`Updating demographics for village ${data.villageId}, year ${data.year}`);
         const docRef = doc(db, COLLECTIONS.DEMOGRAPHICS, existing.id);
         batch.update(docRef, {
           ...data,
           updatedAt: serverTimestamp()
         });
+        updateCount++;
       } else {
         // Create new
+        console.log(`Creating new demographics for village ${data.villageId}, year ${data.year}`);
         const docRef = doc(collection(db, COLLECTIONS.DEMOGRAPHICS));
         batch.set(docRef, {
           ...data,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
+        createCount++;
       }
     }
     
+    console.log(`Committing batch: ${createCount} creates, ${updateCount} updates`);
     await batch.commit();
+    console.log('Batch committed successfully to Firebase');
     return true;
   } catch (error) {
     console.error('Error bulk upserting demographics:', error);
@@ -345,7 +354,10 @@ export async function upsertPopulationBreakdown(breakdownData) {
  */
 export async function bulkUpsertPopulationBreakdowns(breakdownsArray) {
   try {
+    console.log('bulkUpsertPopulationBreakdowns: Starting batch operation for', breakdownsArray.length, 'records');
     const batch = writeBatch(db);
+    let updateCount = 0;
+    let createCount = 0;
     
     for (const data of breakdownsArray) {
       const q = query(
@@ -367,6 +379,7 @@ export async function bulkUpsertPopulationBreakdowns(breakdownsArray) {
           totalCount,
           updatedAt: serverTimestamp()
         });
+        updateCount++;
       } else {
         // Create
         const docRef = doc(collection(db, COLLECTIONS.POPULATION_BREAKDOWNS));
@@ -376,10 +389,13 @@ export async function bulkUpsertPopulationBreakdowns(breakdownsArray) {
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
+        createCount++;
       }
     }
     
+    console.log(`Committing batch: ${createCount} creates, ${updateCount} updates`);
     await batch.commit();
+    console.log('Population breakdowns batch committed successfully');
     return true;
   } catch (error) {
     console.error('Error bulk upserting breakdowns:', error);

@@ -72,13 +72,16 @@ const InfrastructureTab = ({ selectedYear }) => {
         }
       }
 
+      console.log('Saving water & infrastructure data:', dataArray.length, 'records');
       await bulkUpsertVillageInfrastructure(dataArray);
+      console.log('Water & infrastructure data saved successfully');
 
       setMessage({ 
         type: 'success', 
         text: `Water & Infrastructure data for ${selectedYear} saved successfully!` 
       });
     } catch (error) {
+      console.error('Error saving infrastructure data:', error);
       setMessage({ type: 'error', text: error.message || 'Failed to save data. Please try again.' });
     } finally {
       setSaving(false);

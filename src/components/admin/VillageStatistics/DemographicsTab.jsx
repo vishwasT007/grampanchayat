@@ -78,6 +78,8 @@ const DemographicsTab = ({ selectedYear }) => {
     try {
       // Validate data
       const dataArray = Object.values(demographicsData);
+      console.log('Saving demographics data:', dataArray);
+      
       for (const data of dataArray) {
         if (data.totalPopulation < 0 || data.malePopulation < 0 || data.femalePopulation < 0) {
           setMessage({ type: 'error', text: 'Population counts cannot be negative' });
@@ -87,12 +89,14 @@ const DemographicsTab = ({ selectedYear }) => {
       }
 
       // Save all demographics
+      console.log('Calling bulkUpsertDemographics with', dataArray.length, 'records');
       await bulkUpsertDemographics(dataArray);
-      bulkUpsertDemographics(dataArray);
+      console.log('Demographics saved successfully to Firebase');
 
       setMessage({ type: 'success', text: `Demographics for year ${selectedYear} saved successfully!` });
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to save demographics. Please try again.' });
+      console.error('Error saving demographics:', error);
+      setMessage({ type: 'error', text: `Failed to save demographics: ${error.message}` });
     } finally {
       setSaving(false);
     }

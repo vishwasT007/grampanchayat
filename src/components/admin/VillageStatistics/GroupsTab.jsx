@@ -71,13 +71,16 @@ const GroupsTab = ({ selectedYear }) => {
         }
       }
 
+      console.log('Saving groups & committees data:', dataArray.length, 'records');
       await bulkUpsertVillageGroups(dataArray);
+      console.log('Groups & committees data saved successfully');
 
       setMessage({ 
         type: 'success', 
         text: `Groups & Committees data for ${selectedYear} saved successfully!` 
       });
     } catch (error) {
+      console.error('Error saving groups data:', error);
       setMessage({ type: 'error', text: error.message || 'Failed to save data. Please try again.' });
     } finally {
       setSaving(false);
