@@ -360,57 +360,245 @@ const VillageStatisticsPublic = () => {
             </div>
 
             {/* Section D: Water & Infrastructure */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-              <div className="flex items-center gap-3 mb-6">
-                <Droplets className="w-6 h-6 text-blue-600" />
-                <h2 className="text-xl font-bold text-gray-800">
-                  {language === 'en' ? 'Water & Infrastructure' : 'पाणी आणि पायाभूत सुविधा'}
-                </h2>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gradient-to-r from-orange-50 to-green-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                        {language === 'en' ? 'Village' : 'गाव'}
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                        {language === 'en' ? 'Wells' : 'विहीर'}
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                        {language === 'en' ? 'Borewells' : 'बोअरवेल'}
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                        {language === 'en' ? 'Handpumps' : 'हँडपंप'}
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                        {language === 'en' ? 'Tap Connections' : 'नळ जोडणी'}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {summary.map((item, index) => (
-                      <tr key={item.village.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {language === 'en' ? item.village.nameEn : item.village.nameMr}
+            <div className="space-y-8">
+              {/* Table 1: Water Supply Sources */}
+              <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+                <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-4">
+                  <h2 className="text-white font-semibold flex items-center gap-2">
+                    <Droplets className="w-5 h-5" />
+                    {language === 'en' ? 'Water Supply Sources' : 'पाणी पुरवठा साधने'}
+                  </h2>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gradient-to-r from-orange-50 to-green-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          {language === 'en' ? 'Sr. No.' : 'अ.क्र.'}
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          {language === 'en' ? 'Water Source' : 'पाणी स्रोत'}
+                        </th>
+                        {summary.map(item => (
+                          <th key={item.village.id} className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
+                            {language === 'en' ? item.village.nameEn : item.village.nameMr}
+                          </th>
+                        ))}
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider bg-blue-50">
+                          {language === 'en' ? 'Total' : 'एकूण'}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {/* Private Wells */}
+                      <tr className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm text-gray-900">1</td>
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                          {language === 'en' ? 'Private Wells' : 'खाजगी विहीर'}
                         </td>
-                        <td className="px-6 py-4 text-center text-sm text-gray-700">
-                          {item.infrastructure.wellsCount || 0}
-                        </td>
-                        <td className="px-6 py-4 text-center text-sm text-gray-700">
-                          {item.infrastructure.borewellsCount || 0}
-                        </td>
-                        <td className="px-6 py-4 text-center text-sm text-gray-700">
-                          {item.infrastructure.handpumpsCount || 0}
-                        </td>
-                        <td className="px-6 py-4 text-center text-sm text-gray-700">
-                          {item.infrastructure.tapConnectionsCount || 0}
+                        {summary.map(item => (
+                          <td key={item.village.id} className="px-6 py-4 text-center text-sm text-gray-700">
+                            {item.infrastructure.privateWells || 0}
+                          </td>
+                        ))}
+                        <td className="px-6 py-4 text-center font-bold text-blue-900 bg-blue-50">
+                          {summary.reduce((sum, item) => sum + (item.infrastructure.privateWells || 0), 0)}
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                      
+                      {/* Public Wells */}
+                      <tr className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm text-gray-900">2</td>
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                          {language === 'en' ? 'Public Wells' : 'सार्वजनिक विहीर'}
+                        </td>
+                        {summary.map(item => (
+                          <td key={item.village.id} className="px-6 py-4 text-center text-sm text-gray-700">
+                            {item.infrastructure.publicWells || 0}
+                          </td>
+                        ))}
+                        <td className="px-6 py-4 text-center font-bold text-blue-900 bg-blue-50">
+                          {summary.reduce((sum, item) => sum + (item.infrastructure.publicWells || 0), 0)}
+                        </td>
+                      </tr>
+                      
+                      {/* NIT Scheme */}
+                      <tr className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm text-gray-900">3</td>
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                          {language === 'en' ? 'NIT Scheme' : 'एनआयटी योजना'}
+                        </td>
+                        {summary.map(item => (
+                          <td key={item.village.id} className="px-6 py-4 text-center text-sm text-gray-700">
+                            {item.infrastructure.nitScheme || 0}
+                          </td>
+                        ))}
+                        <td className="px-6 py-4 text-center font-bold text-blue-900 bg-blue-50">
+                          {summary.reduce((sum, item) => sum + (item.infrastructure.nitScheme || 0), 0)}
+                        </td>
+                      </tr>
+                      
+                      {/* Handpumps */}
+                      <tr className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm text-gray-900">4</td>
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                          {language === 'en' ? 'Handpumps' : 'हँडपंप'}
+                        </td>
+                        {summary.map(item => (
+                          <td key={item.village.id} className="px-6 py-4 text-center text-sm text-gray-700">
+                            {item.infrastructure.handpumps || 0}
+                          </td>
+                        ))}
+                        <td className="px-6 py-4 text-center font-bold text-blue-900 bg-blue-50">
+                          {summary.reduce((sum, item) => sum + (item.infrastructure.handpumps || 0), 0)}
+                        </td>
+                      </tr>
+                      
+                      {/* Water Tank Capacity */}
+                      <tr className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm text-gray-900">5</td>
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                          {language === 'en' ? 'Water Tank Capacity' : 'पाणी टाकीची क्षमता'}
+                        </td>
+                        {summary.map(item => (
+                          <td key={item.village.id} className="px-6 py-4 text-center text-sm text-gray-700">
+                            {item.infrastructure.waterTankCapacity || '—'}
+                          </td>
+                        ))}
+                        <td className="px-6 py-4 text-center text-gray-500 bg-blue-50">—</td>
+                      </tr>
+                      
+                      {/* Water Filter Plant */}
+                      <tr className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm text-gray-900">6</td>
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                          {language === 'en' ? 'Water Filter Plant' : 'पाणी गाळणी प्रकल्प'}
+                        </td>
+                        {summary.map(item => (
+                          <td key={item.village.id} className="px-6 py-4 text-center text-sm text-gray-700">
+                            {item.infrastructure.waterFilterPlant || 0}
+                          </td>
+                        ))}
+                        <td className="px-6 py-4 text-center font-bold text-blue-900 bg-blue-50">
+                          {summary.reduce((sum, item) => sum + (item.infrastructure.waterFilterPlant || 0), 0)}
+                        </td>
+                      </tr>
+                      
+                      {/* Private Ponds */}
+                      <tr className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm text-gray-900">7</td>
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                          {language === 'en' ? 'Private Ponds' : 'खाजगी तलाव'}
+                        </td>
+                        {summary.map(item => (
+                          <td key={item.village.id} className="px-6 py-4 text-center text-sm text-gray-700">
+                            {item.infrastructure.privatePonds || 0}
+                          </td>
+                        ))}
+                        <td className="px-6 py-4 text-center font-bold text-blue-900 bg-blue-50">
+                          {summary.reduce((sum, item) => sum + (item.infrastructure.privatePonds || 0), 0)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Table 2: Tap Connection Details */}
+              <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4">
+                  <h2 className="text-white font-semibold flex items-center gap-2">
+                    <Droplets className="w-5 h-5" />
+                    {language === 'en' ? 'Tap Connection Details' : 'नळ जोडणी माहिती'}
+                  </h2>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gradient-to-r from-orange-50 to-green-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          {language === 'en' ? 'Sr. No.' : 'अ.क्र.'}
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          {language === 'en' ? 'Village' : 'गाव'}
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          {language === 'en' ? 'Families' : 'कुटुंबे'}
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          {language === 'en' ? 'Old Connections' : 'जुने नळ'}
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          {language === 'en' ? 'New Connections' : 'नवीन नळ'}
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider bg-indigo-50">
+                          {language === 'en' ? 'Total Connections' : 'एकूण नळ'}
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          {language === 'en' ? 'Private Wells' : 'खाजगी विहीर'}
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          {language === 'en' ? 'Pending' : 'प्रलंबित'}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {summary.map((item, index) => (
+                        <tr key={item.village.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                          <td className="px-6 py-4 text-sm text-gray-900">{index + 1}</td>
+                          <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                            {language === 'en' ? item.village.nameEn : item.village.nameMr}
+                          </td>
+                          <td className="px-6 py-4 text-center text-sm text-gray-700">
+                            {item.infrastructure.families || 0}
+                          </td>
+                          <td className="px-6 py-4 text-center text-sm text-gray-700">
+                            {item.infrastructure.oldTapConnections || 0}
+                          </td>
+                          <td className="px-6 py-4 text-center text-sm text-gray-700">
+                            {item.infrastructure.newTapConnections || 0}
+                          </td>
+                          <td className="px-6 py-4 text-center text-sm font-semibold text-gray-900 bg-indigo-50">
+                            {item.infrastructure.totalTapConnections || 0}
+                          </td>
+                          <td className="px-6 py-4 text-center text-sm text-gray-700">
+                            {item.infrastructure.privateWellsForTap || 0}
+                          </td>
+                          <td className="px-6 py-4 text-center text-sm text-gray-700">
+                            {item.infrastructure.pendingTapConnections || 0}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-indigo-50">
+                      <tr className="font-bold">
+                        <td className="px-6 py-4" colSpan="2">
+                          {language === 'en' ? 'Total' : 'एकूण'}
+                        </td>
+                        <td className="px-6 py-4 text-center text-indigo-900">
+                          {summary.reduce((sum, item) => sum + (item.infrastructure.families || 0), 0)}
+                        </td>
+                        <td className="px-6 py-4 text-center text-indigo-900">
+                          {summary.reduce((sum, item) => sum + (item.infrastructure.oldTapConnections || 0), 0)}
+                        </td>
+                        <td className="px-6 py-4 text-center text-indigo-900">
+                          {summary.reduce((sum, item) => sum + (item.infrastructure.newTapConnections || 0), 0)}
+                        </td>
+                        <td className="px-6 py-4 text-center text-indigo-900 bg-indigo-100">
+                          {summary.reduce((sum, item) => sum + (item.infrastructure.totalTapConnections || 0), 0)}
+                        </td>
+                        <td className="px-6 py-4 text-center text-indigo-900">
+                          {summary.reduce((sum, item) => sum + (item.infrastructure.privateWellsForTap || 0), 0)}
+                        </td>
+                        <td className="px-6 py-4 text-center text-indigo-900">
+                          {summary.reduce((sum, item) => sum + (item.infrastructure.pendingTapConnections || 0), 0)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
               </div>
             </div>
           </>
@@ -421,3 +609,4 @@ const VillageStatisticsPublic = () => {
 };
 
 export default VillageStatisticsPublic;
+
