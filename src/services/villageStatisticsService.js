@@ -43,8 +43,17 @@ export async function getAllVillages() {
     console.log('Fetching villages from Firebase server (bypassing cache)...');
     // Use getDocsFromServer to force fresh data from server, not cache
     const querySnapshot = await getDocsFromServer(collection(db, COLLECTIONS.VILLAGES));
-    const villages = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const villages = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      // Remove the internal 'id' field if it exists, use Firebase doc.id instead
+      const { id: internalId, ...restData } = data;
+      return { 
+        id: doc.id,  // Use Firebase document ID, not the internal id field
+        ...restData 
+      };
+    });
     console.log('Fetched from server:', villages.length, 'villages');
+    console.log('Village IDs:', villages.map(v => ({ docId: v.id, name: v.nameEn })));
     return villages;
   } catch (error) {
     console.error('Error getting villages:', error);
