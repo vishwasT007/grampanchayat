@@ -34,7 +34,9 @@ const VillageManagementTab = () => {
 
   const loadVillages = async () => {
     try {
+      console.log('Loading villages from Firebase...');
       const allVillages = await getAllVillages();
+      console.log('Loaded villages:', allVillages.length, allVillages);
       setVillages(allVillages);
     } catch (error) {
       console.error('Error loading villages:', error);
@@ -112,11 +114,15 @@ const VillageManagementTab = () => {
     }
 
     try {
+      console.log('Deleting village with ID:', village.id);
       await deleteVillage(village.id);
+      console.log('Delete successful, reloading villages...');
       await loadVillages();
+      console.log('Villages reloaded, current count:', villages.length - 1);
       setMessage({ type: 'success', text: `Village "${village.nameEn}" deleted successfully!` });
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to delete village. Please try again.' });
+      console.error('Error deleting village:', error);
+      setMessage({ type: 'error', text: `Failed to delete village: ${error.message}` });
     }
   };
 
