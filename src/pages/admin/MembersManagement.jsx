@@ -120,8 +120,8 @@ const MembersManagement = () => {
             <div key={member.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all">
               {/* Member Photo */}
               <div className="h-48 bg-gradient-to-br from-orange-100 to-green-100 flex items-center justify-center">
-                {member.photoUrl ? (
-                  <img src={member.photoUrl} alt={member.name.en} className="w-full h-full object-cover" />
+                {member.photo ? (
+                  <img src={member.photo} alt={member.name.en} className="w-full h-full object-cover" />
                 ) : (
                   <UserCircle size={80} className="text-gray-400" />
                 )}

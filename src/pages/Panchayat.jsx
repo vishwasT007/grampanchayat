@@ -203,7 +203,7 @@ const Panchayat = () => {
               {panchayatMembers.map((member) => (
                 <div key={member.id} className="card p-6 text-center">
                   <img
-                    src={member.photoUrl}
+                    src={member.photo}
                     alt={getContent(member.name)}
                     className="w-32 h-32 rounded-full object-cover mx-auto mb-4 border-4 border-gray-100"
                   />
@@ -237,7 +237,7 @@ const Panchayat = () => {
               {staff.map((staffMember) => (
                 <div key={staffMember.id} className="card p-6 text-center">
                   <img
-                    src={staffMember.photoUrl}
+                    src={staffMember.photo}
                     alt={getContent(staffMember.name)}
                     className="w-32 h-32 rounded-full object-cover mx-auto mb-4 border-4 border-gray-100"
                   />
