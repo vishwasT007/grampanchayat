@@ -10,6 +10,7 @@ import {
   getDoc,
   addDoc, 
   updateDoc, 
+  setDoc,
   deleteDoc,
   query,
   where,
@@ -85,10 +86,11 @@ export async function createVillage(villageData) {
  */
 export async function updateVillage(villageId, updates) {
   try {
-    await updateDoc(doc(db, COLLECTIONS.VILLAGES, villageId), {
+    // Use setDoc with merge option to create if not exists or update if exists
+    await setDoc(doc(db, COLLECTIONS.VILLAGES, villageId), {
       ...updates,
       updatedAt: serverTimestamp()
-    });
+    }, { merge: true });
     return { id: villageId, ...updates };
   } catch (error) {
     console.error('Error updating village:', error);

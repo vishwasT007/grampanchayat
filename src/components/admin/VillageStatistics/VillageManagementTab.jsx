@@ -88,7 +88,11 @@ const VillageManagementTab = () => {
       setMessage({ type: 'success', text: `Village "${formData.nameEn}" updated successfully!` });
     } catch (error) {
       console.error('Error updating village:', error);
-      setMessage({ type: 'error', text: 'Failed to update village. Please try again.' });
+      const errorMessage = error.message || 'Failed to update village. Please try again.';
+      setMessage({ 
+        type: 'error', 
+        text: `Error: ${errorMessage}. The village may not exist in the database.` 
+      });
     }
   };
 
