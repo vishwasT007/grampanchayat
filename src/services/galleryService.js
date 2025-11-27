@@ -101,6 +101,7 @@ export const createProgram = async (programData, imageFiles = []) => {
       descriptionMr: programData.descriptionMr || '',
       date: Timestamp.fromDate(new Date(programData.date)),
       images: imageUrls,
+      youtubeLink: programData.youtubeLink || '',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
@@ -153,6 +154,7 @@ export const updateProgram = async (programId, programData, newImageFiles = [], 
       descriptionMr: programData.descriptionMr || '',
       date: Timestamp.fromDate(new Date(programData.date)),
       images: allImageUrls,
+      youtubeLink: programData.youtubeLink || '',
       updatedAt: serverTimestamp()
     };
     

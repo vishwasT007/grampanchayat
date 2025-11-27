@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Upload, X } from 'lucide-react';
+import { ArrowLeft, Save, Upload, X, Video, Image as ImageIcon } from 'lucide-react';
 import { getProgramById, createProgram, updateProgram } from '../../services/galleryService';
+import { compressImage, validateImageFile } from '../../utils/imageCompression';
 
 function GalleryForm() {
   const navigate = useNavigate();
@@ -14,11 +15,13 @@ function GalleryForm() {
     descriptionEn: '',
     descriptionMr: '',
     date: '',
+    youtubeLink: '', // Add YouTube link field
   });
 
   const [existingImages, setExistingImages] = useState([]);
   const [newImageFiles, setNewImageFiles] = useState([]);
   const [newImagePreviews, setNewImagePreviews] = useState([]);
+  const [compressing, setCompressing] = useState(false); // Add compression state
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(false);
@@ -39,6 +42,7 @@ function GalleryForm() {
         descriptionEn: program.descriptionEn || '',
         descriptionMr: program.descriptionMr || '',
         date: program.date?.toISOString?.().split('T')[0] || '',
+        youtubeLink: program.youtubeLink || '',
       });
       setExistingImages(program.images || []);
     } catch (error) {
@@ -80,49 +84,85 @@ function GalleryForm() {
     }
   };
 
-  const handleImageFilesChange = (e) => {
+  const handleImageFilesChange = async (e) => {
     const files = Array.from(e.target.files);
     
     if (files.length === 0) return;
 
-    // Validate files
-    const validFiles = [];
-    const errors = [];
+    setCompressing(true);
 
-    files.forEach((file, index) => {
-      if (!file.type.startsWith('image/')) {
-        errors.push(`File ${index + 1} is not an image`);
+    try {
+      // Validate and compress files
+      const validFiles = [];
+      const errors = [];
+
+      for (const file of files) {
+        // Validate file
+        const validation = validateImageFile(file);
+        if (!validation.valid) {
+          errors.push(`${file.name}: ${validation.errors.join(', ')}`);
+          continue;
+        }
+
+        // Compress image
+        try {
+          const fileSizeKB = file.size / 1024;
+          console.log(`Original size of ${file.name}: ${fileSizeKB.toFixed(2)}KB`);
+          
+          // Compress if larger than 1MB
+          let processedFile = file;
+          if (fileSizeKB > 1024) {
+            console.log(`Compressing ${file.name}...`);
+            processedFile = await compressImage(file, 350); // Target 350KB
+            const compressedSizeKB = processedFile.size / 1024;
+            console.log(`Compressed ${file.name}: ${fileSizeKB.toFixed(2)}KB → ${compressedSizeKB.toFixed(2)}KB`);
+          }
+          
+          validFiles.push(processedFile);
+        } catch (compressionError) {
+          console.error(`Error compressing ${file.name}:`, compressionError);
+          errors.push(`${file.name}: Failed to compress`);
+        }
+      }
+
+      if (errors.length > 0) {
+        alert('Some files had errors:\n' + errors.join('\n'));
+      }
+
+      if (validFiles.length === 0) {
+        setCompressing(false);
         return;
       }
-      if (file.size > 5 * 1024 * 1024) {
-        errors.push(`File ${file.name} is too large (max 5MB)`);
-        return;
-      }
-      validFiles.push(file);
-    });
 
-    if (errors.length > 0) {
-      alert(errors.join('\n'));
-      return;
+      // Add to new files
+      setNewImageFiles(prev => [...prev, ...validFiles]);
+
+      // Create previews
+      for (const file of validFiles) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setNewImagePreviews(prev => [...prev, reader.result]);
+        };
+        reader.readAsDataURL(file);
+      }
+
+      // Clear error
+      setErrors(prev => ({
+        ...prev,
+        images: ''
+      }));
+
+      // Show success message
+      if (validFiles.length > 0) {
+        const totalSize = validFiles.reduce((sum, file) => sum + file.size, 0) / 1024;
+        console.log(`Successfully processed ${validFiles.length} image(s). Total size: ${totalSize.toFixed(2)}KB`);
+      }
+    } catch (error) {
+      console.error('Error processing images:', error);
+      alert('Failed to process images. Please try again.');
+    } finally {
+      setCompressing(false);
     }
-
-    // Add to new files
-    setNewImageFiles(prev => [...prev, ...validFiles]);
-
-    // Create previews
-    validFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewImagePreviews(prev => [...prev, reader.result]);
-      };
-      reader.readAsDataURL(file);
-    });
-
-    // Clear error
-    setErrors(prev => ({
-      ...prev,
-      images: ''
-    }));
   };
 
   const handleRemoveExistingImage = (imageUrl) => {
@@ -146,11 +186,21 @@ function GalleryForm() {
     if (!formData.date) {
       newErrors.date = 'Date is required';
     }
-    if (!isEdit && newImageFiles.length === 0) {
-      newErrors.images = 'At least one image is required';
+    
+    // Check if at least one media type is provided (images or YouTube link)
+    const hasImages = (isEdit && existingImages.length > 0) || newImageFiles.length > 0;
+    const hasYouTube = formData.youtubeLink && formData.youtubeLink.trim() !== '';
+    
+    if (!hasImages && !hasYouTube) {
+      newErrors.media = 'Please provide either images or a YouTube video link';
     }
-    if (isEdit && existingImages.length === 0 && newImageFiles.length === 0) {
-      newErrors.images = 'At least one image is required';
+    
+    // Validate YouTube link format if provided
+    if (formData.youtubeLink && formData.youtubeLink.trim() !== '') {
+      const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
+      if (!youtubeRegex.test(formData.youtubeLink)) {
+        newErrors.youtubeLink = 'Please enter a valid YouTube URL';
+      }
     }
 
     setErrors(newErrors);
@@ -173,6 +223,7 @@ function GalleryForm() {
         descriptionEn: formData.descriptionEn,
         descriptionMr: formData.descriptionMr,
         date: formData.date,
+        youtubeLink: formData.youtubeLink || '',
       };
 
       if (isEdit) {
@@ -296,11 +347,25 @@ function GalleryForm() {
             {/* Upload More Button */}
             <div>
               <label className="block">
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-orange-500 transition-colors">
-                  <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-600 mb-1">Click to upload images</p>
-                  <p className="text-sm text-gray-500">PNG, JPG, JPEG up to 5MB each</p>
-                  <p className="text-xs text-gray-400 mt-2">You can select multiple images at once</p>
+                <div className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                  compressing 
+                    ? 'border-orange-500 bg-orange-50' 
+                    : 'border-gray-300 hover:border-orange-500'
+                }`}>
+                  {compressing ? (
+                    <>
+                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-600 mx-auto mb-3"></div>
+                      <p className="text-orange-600 font-medium mb-1">Compressing images...</p>
+                      <p className="text-sm text-orange-500">Please wait while we optimize your images</p>
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-600 mb-1">Click to upload images</p>
+                      <p className="text-sm text-gray-500">PNG, JPG, WebP up to 10MB</p>
+                      <p className="text-xs text-gray-400 mt-2">Images over 1MB will be automatically compressed to ~350KB</p>
+                    </>
+                  )}
                 </div>
                 <input
                   type="file"
@@ -308,12 +373,45 @@ function GalleryForm() {
                   multiple
                   onChange={handleImageFilesChange}
                   className="hidden"
-                  disabled={loading}
+                  disabled={loading || compressing}
                 />
               </label>
-              {errors.images && (
-                <p className="text-red-500 text-sm mt-2">{errors.images}</p>
+              {errors.media && (
+                <p className="text-red-500 text-sm mt-2">{errors.media}</p>
               )}
+            </div>
+          </div>
+        </div>
+
+        {/* YouTube Video Link */}
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4 pb-3 border-b flex items-center gap-2">
+            <Video className="w-5 h-5 text-orange-600" />
+            <span>YouTube Video (Optional)</span>
+          </h2>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                YouTube Video Link
+              </label>
+              <input
+                type="url"
+                value={formData.youtubeLink}
+                onChange={(e) => setFormData({ ...formData, youtubeLink: e.target.value })}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                  errors.youtubeLink ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="https://www.youtube.com/watch?v=..."
+                disabled={loading}
+              />
+              {errors.youtubeLink && (
+                <p className="text-red-500 text-sm mt-1">{errors.youtubeLink}</p>
+              )}
+              <p className="text-xs text-gray-500 mt-2">
+                Add a YouTube video link to display alongside or instead of images. 
+                Supported formats: youtube.com/watch?v=, youtu.be/
+              </p>
             </div>
           </div>
         </div>

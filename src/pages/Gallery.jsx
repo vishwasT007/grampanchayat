@@ -8,9 +8,11 @@ import {
   ChevronRight,
   Camera,
   Eye,
-  Sparkles
+  Sparkles,
+  Video
 } from 'lucide-react';
 import { getAllPrograms } from '../services/galleryService';
+import { getYouTubeVideoId, getYouTubeEmbedUrl, getYouTubeThumbnail } from '../utils/youtubeHelper';
 
 const Gallery = () => {
   const { language } = useLanguage();
@@ -75,18 +77,34 @@ const Gallery = () => {
 
   const goToPreviousImage = () => {
     if (!selectedProgram) return;
+    const totalMedia = getTotalMediaCount(selectedProgram);
     const newIndex = currentImageIndex === 0 
-      ? selectedProgram.images.length - 1 
+      ? totalMedia - 1 
       : currentImageIndex - 1;
     setCurrentImageIndex(newIndex);
   };
 
   const goToNextImage = () => {
     if (!selectedProgram) return;
-    const newIndex = currentImageIndex === selectedProgram.images.length - 1 
+    const totalMedia = getTotalMediaCount(selectedProgram);
+    const newIndex = currentImageIndex === totalMedia - 1 
       ? 0 
       : currentImageIndex + 1;
     setCurrentImageIndex(newIndex);
+  };
+
+  // Helper function to get total media count (images + video)
+  const getTotalMediaCount = (program) => {
+    const imageCount = program.images && program.images.length > 0 ? program.images.length : 0;
+    const videoCount = program.youtubeLink && getYouTubeVideoId(program.youtubeLink) ? 1 : 0;
+    return imageCount + videoCount;
+  };
+
+  // Check if current index is showing video
+  const isShowingVideo = (program, index) => {
+    if (!program) return false;
+    const imageCount = program.images && program.images.length > 0 ? program.images.length : 0;
+    return index >= imageCount;
   };
 
   // Handle keyboard navigation
@@ -94,13 +112,15 @@ const Gallery = () => {
     const handleKeyPress = (e) => {
       if (!selectedProgram) return;
       
+      const totalMedia = getTotalMediaCount(selectedProgram);
+      
       if (e.key === 'ArrowLeft') {
-        if (selectedProgram.images.length > 1) {
+        if (totalMedia > 1) {
           goToPreviousImage();
         }
       }
       if (e.key === 'ArrowRight') {
-        if (selectedProgram.images.length > 1) {
+        if (totalMedia > 1) {
           goToNextImage();
         }
       }
@@ -174,9 +194,18 @@ const Gallery = () => {
           ) : programs.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {programs.map((program, index) => {
-                const firstImage = program.images && program.images.length > 0 
-                  ? program.images[0] 
-                  : 'https://via.placeholder.com/400x300?text=No+Image';
+                // Determine display image: YouTube thumbnail or first image
+                const youtubeVideoId = program.youtubeLink ? getYouTubeVideoId(program.youtubeLink) : null;
+                const hasYouTube = youtubeVideoId !== null;
+                const hasImages = program.images && program.images.length > 0;
+                
+                const displayImage = hasYouTube 
+                  ? getYouTubeThumbnail(youtubeVideoId, 'hqdefault')
+                  : hasImages 
+                    ? program.images[0]
+                    : 'https://via.placeholder.com/400x300?text=No+Media';
+                
+                const totalMediaCount = (hasImages ? program.images.length : 0) + (hasYouTube ? 1 : 0);
                 
                 return (
                   <div
@@ -189,19 +218,39 @@ const Gallery = () => {
                     {/* Image Container */}
                     <div className="relative h-64 overflow-hidden bg-gradient-to-br from-orange-100 to-green-100">
                       <img
-                        src={firstImage}
+                        src={displayImage}
                         alt={language === 'en' ? program.titleEn : program.titleMr}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                         onError={(e) => {
-                          e.target.src = 'https://via.placeholder.com/400x300?text=No+Image';
+                          e.target.src = 'https://via.placeholder.com/400x300?text=No+Media';
                         }}
                       />
                       
-                      {/* Multiple Images Badge */}
-                      {program.images && program.images.length > 1 && (
+                      {/* YouTube Play Button Overlay */}
+                      {hasYouTube && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="w-20 h-20 bg-red-600/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-2xl transform transition-transform group-hover:scale-110">
+                            <div className="w-0 h-0 border-t-8 border-t-transparent border-l-12 border-l-white border-b-8 border-b-transparent ml-1"></div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Multiple Media Badge */}
+                      {totalMediaCount > 1 && (
                         <div className="absolute top-4 right-4 bg-gradient-to-r from-orange-600 to-green-600 text-white px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 shadow-lg">
-                          <ImageIcon size={16} />
-                          <span>{program.images.length} {language === 'en' ? 'Photos' : 'फोटो'}</span>
+                          {hasImages && hasYouTube ? (
+                            <>
+                              <ImageIcon size={16} />
+                              <span>{program.images.length}</span>
+                              <Video size={16} />
+                              <span>1</span>
+                            </>
+                          ) : hasImages ? (
+                            <>
+                              <ImageIcon size={16} />
+                              <span>{program.images.length} {language === 'en' ? 'Photos' : 'फोटो'}</span>
+                            </>
+                          ) : null}
                         </div>
                       )}
 
@@ -219,9 +268,11 @@ const Gallery = () => {
                           <p className="font-bold text-lg">
                             {language === 'en' ? 'View Gallery' : 'गॅलरी पहा'}
                           </p>
-                          {program.images && program.images.length > 1 && (
+                          {totalMediaCount > 0 && (
                             <p className="text-sm text-white/80 mt-1">
-                              {program.images.length} {language === 'en' ? 'images' : 'प्रतिमा'}
+                              {hasImages && `${program.images.length} ${language === 'en' ? 'photos' : 'फोटो'}`}
+                              {hasImages && hasYouTube && ' + '}
+                              {hasYouTube && `1 ${language === 'en' ? 'video' : 'व्हिडिओ'}`}
                             </p>
                           )}
                         </div>
@@ -269,7 +320,7 @@ const Gallery = () => {
       </section>
 
       {/* Premium Lightbox Modal */}
-      {selectedProgram && selectedProgram.images && selectedProgram.images.length > 0 && (
+      {selectedProgram && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-hidden"
           onClick={closeLightbox}
@@ -311,7 +362,7 @@ const Gallery = () => {
             </div>
 
             {/* Navigation Buttons */}
-            {selectedProgram.images.length > 1 && (
+            {getTotalMediaCount(selectedProgram) > 1 && (
               <>
                 <button
                   onClick={(e) => {
@@ -319,7 +370,7 @@ const Gallery = () => {
                     goToPreviousImage();
                   }}
                   className="absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 backdrop-blur-sm text-white rounded-full flex items-center justify-center transition-all z-20 shadow-xl hover:scale-110"
-                  aria-label="Previous Image"
+                  aria-label="Previous Media"
                 >
                   <ChevronLeft size={32} />
                 </button>
@@ -329,29 +380,52 @@ const Gallery = () => {
                     goToNextImage();
                   }}
                   className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 backdrop-blur-sm text-white rounded-full flex items-center justify-center transition-all z-20 shadow-xl hover:scale-110"
-                  aria-label="Next Image"
+                  aria-label="Next Media"
                 >
                   <ChevronRight size={32} />
                 </button>
               </>
             )}
 
-            {/* Main Image Container */}
+            {/* Main Media Container */}
             <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-black/50 to-blue-900/30 backdrop-blur-md rounded-2xl mb-4 p-8 border border-white/20 shadow-2xl overflow-hidden">
-              <div className="relative">
-                <img
-                  src={selectedProgram.images[currentImageIndex]}
-                  alt={`${language === 'en' ? selectedProgram.titleEn : selectedProgram.titleMr} - Image ${currentImageIndex + 1}`}
-                  className="max-w-full max-h-[60vh] object-contain rounded-xl shadow-2xl"
-                  onError={(e) => {
-                    e.target.src = 'https://via.placeholder.com/800x600?text=No+Image';
-                  }}
-                />
-                {/* Image Counter Badge */}
-                {selectedProgram.images.length > 1 && (
-                  <div className="absolute top-4 right-4 bg-gradient-to-r from-orange-600 to-green-600 text-white px-5 py-2 rounded-full font-bold text-lg shadow-xl flex items-center gap-2">
-                    <ImageIcon size={20} />
-                    <span>{currentImageIndex + 1} / {selectedProgram.images.length}</span>
+              <div className="relative w-full">
+                {isShowingVideo(selectedProgram, currentImageIndex) ? (
+                  // YouTube Video Display
+                  <div className="w-full max-w-5xl mx-auto">
+                    <div className="relative pb-[56.25%]"> {/* 16:9 Aspect Ratio */}
+                      <iframe
+                        src={getYouTubeEmbedUrl(getYouTubeVideoId(selectedProgram.youtubeLink))}
+                        title={`${language === 'en' ? selectedProgram.titleEn : selectedProgram.titleMr} - YouTube Video`}
+                        className="absolute top-0 left-0 w-full h-full rounded-xl shadow-2xl"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      ></iframe>
+                    </div>
+                    {/* Video Badge */}
+                    <div className="absolute top-4 right-4 bg-gradient-to-r from-red-600 to-red-700 text-white px-5 py-2 rounded-full font-bold text-lg shadow-xl flex items-center gap-2">
+                      <Video size={20} />
+                      <span>{language === 'en' ? 'YouTube Video' : 'YouTube व्हिडिओ'}</span>
+                    </div>
+                  </div>
+                ) : (
+                  // Image Display
+                  <div className="flex items-center justify-center">
+                    <img
+                      src={selectedProgram.images[currentImageIndex]}
+                      alt={`${language === 'en' ? selectedProgram.titleEn : selectedProgram.titleMr} - Image ${currentImageIndex + 1}`}
+                      className="max-w-full max-h-[60vh] object-contain rounded-xl shadow-2xl"
+                      onError={(e) => {
+                        e.target.src = 'https://via.placeholder.com/800x600?text=No+Image';
+                      }}
+                    />
+                    {/* Image Counter Badge */}
+                    {(selectedProgram.images && selectedProgram.images.length > 0) && (
+                      <div className="absolute top-4 right-4 bg-gradient-to-r from-orange-600 to-green-600 text-white px-5 py-2 rounded-full font-bold text-lg shadow-xl flex items-center gap-2">
+                        <ImageIcon size={20} />
+                        <span>{currentImageIndex + 1} / {selectedProgram.images.length}</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
