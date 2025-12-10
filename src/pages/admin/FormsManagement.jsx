@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Edit2, Trash2, FileText, Download, Languages } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, FileText, Download, Languages, AlertTriangle } from 'lucide-react';
 import { getAllForms, deleteForm } from '../../services/formsService';
 
 function FormsManagement() {
@@ -85,7 +85,7 @@ function FormsManagement() {
     if (form.fileUrl) {
       window.open(form.fileUrl, '_blank');
     } else {
-      alert('No file available for download');
+      alert('⚠️ No file URL available for this form. Please edit and re-upload the PDF file.');
     }
   };
 
@@ -247,6 +247,13 @@ function FormsManagement() {
                   <div className="flex items-center gap-3 mb-3">
                     {getCategoryBadge(form.category)}
                     {getLanguageBadge(form.language)}
+                    {/* Warning badge for missing file URL */}
+                    {!form.fileUrl && (
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 flex items-center gap-1 animate-pulse">
+                        <AlertTriangle className="w-3 h-3" />
+                        Missing File
+                      </span>
+                    )}
                   </div>
                   
                   <h3 className="text-xl font-semibold text-gray-800 mb-1">

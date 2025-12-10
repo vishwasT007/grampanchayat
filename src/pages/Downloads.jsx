@@ -29,6 +29,8 @@ const Downloads = () => {
       try {
         setLoading(true);
         const fetchedForms = await getAllForms();
+        console.log('Fetched forms:', fetchedForms);
+        console.log('First form data:', fetchedForms[0]);
         setForms(fetchedForms);
       } catch (error) {
         console.error('Error loading forms:', error);
@@ -76,14 +78,18 @@ const Downloads = () => {
   };
 
   const handleDownload = (form) => {
+    console.log('Download clicked for form:', form);
+    console.log('File URL:', form.fileUrl);
+    
     // Open the Firebase Storage URL in a new tab
-    if (form.fileUrl) {
+    if (form.fileUrl && form.fileUrl.trim() !== '') {
       window.open(form.fileUrl, '_blank');
     } else {
+      console.error('File URL is missing or empty for form:', form.id);
       alert(
         language === 'en' 
-          ? 'Download link not available'
-          : 'डाउनलोड दुवा उपलब्ध नाही'
+          ? 'Download link not available. Please contact administrator.'
+          : 'डाउनलोड दुवा उपलब्ध नाही. कृपया प्रशासकाशी संपर्क साधा.'
       );
     }
   };
@@ -270,7 +276,15 @@ const Downloads = () => {
                       {form.createdAt && (
                         <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-300">
                           <Calendar size={14} />
-                          {new Date(form.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          {(() => {
+                            try {
+                              // Handle Firestore Timestamp
+                              const date = form.createdAt?.toDate ? form.createdAt.toDate() : new Date(form.createdAt);
+                              return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                            } catch (error) {
+                              return 'Recent';
+                            }
+                          })()}
                         </span>
                       )}
                     </div>
