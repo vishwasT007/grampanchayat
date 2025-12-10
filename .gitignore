@@ -17,6 +17,10 @@ dist-ssr
 .env.local
 .env.production
 
+# Firebase tokens and secrets
+firebase-token.txt
+*.token
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
