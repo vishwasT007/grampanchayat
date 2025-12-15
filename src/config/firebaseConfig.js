@@ -12,6 +12,20 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
+// Verify environment variables are loaded
+if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+  console.error('❌ Firebase environment variables are not loaded!');
+  console.error('Missing variables:', {
+    apiKey: !firebaseConfig.apiKey,
+    authDomain: !firebaseConfig.authDomain,
+    projectId: !firebaseConfig.projectId,
+    storageBucket: !firebaseConfig.storageBucket,
+    messagingSenderId: !firebaseConfig.messagingSenderId,
+    appId: !firebaseConfig.appId
+  });
+  throw new Error('Firebase configuration is incomplete. Please check environment variables.');
+}
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
