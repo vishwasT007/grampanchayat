@@ -322,13 +322,13 @@ const AdminDashboard = () => {
                 <div key={program.id} className="p-4 border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50/50 transition-all">
                   <div className="flex items-start gap-3">
                     <img 
-                      src={program.photoUrl} 
-                      alt={program.title.en}
+                      src={program.images?.[0] || '/placeholder.jpg'} 
+                      alt={program.titleEn || 'Program'}
                       className="w-16 h-16 object-cover rounded-lg"
                     />
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-800 mb-1">{program.title.en}</h3>
-                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">{program.description.en}</p>
+                      <h3 className="font-semibold text-gray-800 mb-1">{program.titleEn}</h3>
+                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">{program.descriptionEn}</p>
                       <span className="text-xs text-gray-500 flex items-center gap-1">
                         <Calendar size={12} />
                         {new Date(program.date).toLocaleDateString()}
